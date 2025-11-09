@@ -1,0 +1,22 @@
+Started at: 2025-09-12T22:16:46.535
+#############
+#
+# Loading
+#
+#############
+
+# Found pack: C:\Users\favad\.gradle\caches\modules-2\files-2.1\curse.maven\buildcraft-61811\3204475\46c7bcb2c81f4786a84f951e7204277c967deb96\buildcraft-61811-3204475.jar
+
+Found script: buildcraftlib/compat/buildcraft/book.txt
+
+Found script: buildcraftcore/compat/buildcraft/book.txt
+
+#############
+#
+# Executing
+#
+#############
+
+Adding buildcraftlib:meta as GuideBook [ buildcraftlib:meta, title = TranslatableComponent{key='buildcraft.guide.book.meta.name', args=[], siblings=[], style=Style{hasParent=false, color=null, bold=null, italic=null, underlined=null, obfuscated=null, clickEvent=null, hoverEvent=null, insertion=null}} ]
+Adding buildcraftcore:main as GuideBook [ buildcraftcore:main, title = TranslatableComponent{key='item.buildcraft.guide.name', args=[], siblings=[], style=Style{hasParent=false, color=null, bold=null, italic=null, underlined=null, obfuscated=null, clickEvent=null, hoverEvent=null, insertion=null}} ]
+Finished at: 2025-09-12T22:16:46.634, took 99ms

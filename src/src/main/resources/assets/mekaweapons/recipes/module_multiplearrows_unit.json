@@ -1,0 +1,40 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "ECE",
+    "AMA",
+    "PPP"
+  ],
+  "key": {
+    "M": {
+      "item": "mekanism:modulebase",
+      "data": 0
+    },
+    "P": {
+      "ore": "PoloniumPellet",
+      "type": "forge:ore_dict"
+    },
+    "C": {
+      "item": "mekaweapons:meka_arrow",
+      "data": 0
+    },
+    "A": {
+      "ore": "battery",
+      "type": "forge:ore_dict"
+    },
+    "E": {
+      "ore": "circuitUltimate",
+      "type": "forge:ore_dict"
+    }
+  },
+  "result": {
+    "item": "mekaweapons:module_compoundarrow_unit",
+    "count": 1  
+  }
+}

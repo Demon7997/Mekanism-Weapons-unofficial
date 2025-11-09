@@ -1,0 +1,59 @@
+# Creative Tab
+itemGroup.mekaweapons=Mekanism: Weapons
+
+# Weapons
+item.mekaweapons.meka_bow.name=Meka-Bow
+item.mekaweapons.meka_tana.name=Meka-Tana
+
+# Componets
+item.mekaweapons.bow_limb.name=Reinforced Bow Limb
+item.mekaweapons.bow_riser.name=Energized Bow Riser
+item.mekaweapons.katana_blade.name=Refined Katana Blade
+
+# item module
+item.mekaweapons.module_attackamplification_unit.name=Attack Amplification Unit
+item.mekaweapons.module_arrowvelocity_unit.name=Arrow Velocity Unit
+item.mekaweapons.module_autofire_unit.name=Auto-Fire Unit
+item.mekaweapons.module_compoundarrow_unit.name=Compound Arrow Unit
+item.mekaweapons.module_drawspeed_unit.name=Draw Speed Unit
+item.mekaweapons.module_arrowenergy_unit.name=Energy Arrows Unit
+item.mekaweapons.module_gravitydampener_unit.name=Gravity Dampener Unit
+
+# Nomi dei Moduli Installati (usa il nome di registrazione)
+module.mekanism.weapon_attack_amplification_unit=Attack Amplification
+module.mekanism.arrow_velocity_unit=Arrow Velocity
+module.mekanism.auto_fire_unit=Auto-Fire
+module.mekanism.compound_arrow_unit=Compound Arrow
+module.mekanism.draw_speed_unit=Draw Speed
+module.mekanism.energy_arrows_unit=Energy Arrows
+module.mekanism.gravity_dampener_unit=Gravity Dampener
+
+# Modalità Danno 
+mekanism.mode.damage.off=Off
+mekanism.mode.damage.low=Low
+mekanism.mode.damage.medium=Medium
+mekanism.mode.damage.high=High
+mekanism.mode.damage.superhigh=Super-High
+mekanism.mode.damage.extreme=Extreme
+
+#Modalità Drawspeed
+mekaweapons.hud.off=Off
+mekaweapons.hud.low=Low
+mekaweapons.hud.medium=Medium
+mekaweapons.hud.high=High
+
+#item
+item.mekaweapons.meka_arrow.name=Meka Arrow
+
+
+#module
+
+#general
+mekaweapons.hud.damage_amplification=Damage Amplification
+
+
+#bow
+module.autofire_unit.name=Auto-Fire
+module.energy_arrows_unit.name=Energy Arrows
+module.draw_speed_unit.name=Draw Speed
+
