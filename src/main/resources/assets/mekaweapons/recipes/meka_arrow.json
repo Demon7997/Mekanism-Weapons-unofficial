@@ -1,0 +1,37 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "forge:ore_shaped",
+  "pattern": [
+    " I ",
+    " R ",
+    "ASA"
+  ],
+  "key": {
+    "I": {
+      "ore": "ingotRefinedObsidian",
+      "type": "forge:ore_dict"
+    },
+    "R": {
+      "item": "minecraft:arrow",
+      "data": 0
+    },
+    "S": {
+      "item": "mekanism:hdpe_rod",
+      "data": 0
+    }
+    ,
+    "A": {
+      "item": "mekanism:hdpe_sheet",
+      "data": 0
+    }
+  },
+  "result": {
+    "item": "mekaweapons:meka_arrow",
+    "count": 1
+  }
+}

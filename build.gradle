@@ -1,0 +1,58 @@
+// File: build.gradle (FINALE E FUNZIONANTE)
+
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'com.gtnewhorizons.retrofuturagradle' version '1.3.35'
+}
+
+apply from: 'gradle/scripts/helpers.gradle'
+
+version = propertyString('mod_version')
+group = propertyString('root_package')
+base.archivesName.set(propertyString('mod_name'))
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(propertyBool('use_modern_java_syntax') ? 17 : 8))
+    }
+}
+
+minecraft {
+    mcVersion.set('1.12.2')
+    mcpMappingChannel.set(propertyString('mapping_channel'))
+    mcpMappingVersion.set(propertyString('mapping_version'))
+    useDependencyAccessTransformers.set(propertyBool('use_dependency_at_files'))
+    username.set(propertyString('minecraft_username'))
+}
+
+apply from: 'gradle/scripts/dependencies.gradle'
+
+// ##################################################################
+// #### QUESTO È IL BLOCCO processResources CORRETTO ####
+// ##################################################################
+processResources {
+    // Copia tutto dalla cartella delle risorse UNA SOLA VOLTA
+    from(sourceSets.main.resources.srcDirs) {
+        // Escludi il file mcmod.info dal primo passaggio
+        exclude 'mcmod.info'
+    }
+
+    // Ora gestisci mcmod.info a parte
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        // Sostituisci le variabili
+        expand (
+            'modid': propertyString('mod_id'),
+            'name': propertyString('mod_name'),
+            'version': propertyString('mod_version'),
+            'mcversion': minecraft.mcVersion
+        )
+    }
+
+    // QUESTA È LA RIGA CHE RISOLVE L'ERRORE
+    // Se trova un duplicato (non dovrebbe più succedere, ma per sicurezza),
+    // prende il primo che trova e ignora gli altri.
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+// ##################################################################

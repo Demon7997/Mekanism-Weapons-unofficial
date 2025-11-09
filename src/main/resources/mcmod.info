@@ -1,0 +1,14 @@
+[
+{
+  "modid": "mekaweapons",
+  "name": "Mekanism: Weapons",
+  "description": "Adds advanced, modular weapons to Mekanism.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "authorList": ["Wolf"],
+  "credits": "The Mekanism Team for the original mod and API",
+  "requiredMods": ["forge", "mekanism"],
+  "dependants": [],
+  "useDependencyInformation": true
+}
+]

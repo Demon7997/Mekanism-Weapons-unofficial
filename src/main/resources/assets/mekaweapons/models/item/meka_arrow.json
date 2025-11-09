@@ -1,0 +1,79 @@
+{
+	"credit": "Made with Blockbench",
+	"textures": {
+		"body": "mekaweapons:item/meka_bow/bow_body",
+		"side": "mekaweapons:item/meka_bow/arrow_side",
+		"back": "mekaweapons:item/meka_bow/arrow_back"
+	},
+	"elements": [
+		{
+			"name": "Arrow 1",
+			"from": [0.4, 10.8, 7.2],
+			"to": [14.4, 13.8, 7.2],
+			"faces": {
+				"north": {"uv": [0, 0, 16, 5], "rotation": 180, "texture": "#side"},
+				"east": {"uv": [0, 0, 0, 3], "texture": "#body"},
+				"south": {"uv": [0, 0, 16, 5], "texture": "#side"},
+				"west": {"uv": [0, 0, 0, 3], "texture": "#body"},
+				"up": {"uv": [0, 0, 14, 0], "texture": "#body"},
+				"down": {"uv": [0, 0, 14, 0], "texture": "#body"}
+			}
+		},
+		{
+			"name": "Arrow 2",
+			"from": [0.4, 12.2, 5.7],
+			"to": [14.4, 12.2, 8.7],
+			"faces": {
+				"north": {"uv": [0, 0, 16, 5], "texture": "#body"},
+				"east": {"uv": [0, 0, 3, 0], "texture": "#body"},
+				"south": {"uv": [0, 0, 16, 5], "texture": "#body"},
+				"west": {"uv": [0, 0, 3, 0], "texture": "#body"},
+				"up": {"uv": [0, 0, 16, 5], "texture": "#side"},
+				"down": {"uv": [0, 0, 16, 5], "texture": "#side"}
+			}
+		},
+		{
+			"name": "Arrow 3",
+			"from": [2.2, 10.8, 5.7],
+			"to": [2.2, 13.8, 8.7],
+			"faces": {
+				"north": {"uv": [0, 0, 16, 5], "texture": "#body"},
+				"east": {"uv": [0, 0, 5, 5], "texture": "#back"},
+				"south": {"uv": [0, 0, 16, 5], "texture": "#body"},
+				"west": {"uv": [0, 0, 5, 5], "texture": "#back"},
+				"up": {"uv": [0, 0, 16, 5], "texture": "#body"},
+				"down": {"uv": [0, 0, 16, 5], "texture": "#body"}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [0, 90, 0],
+			"translation": [0, -3.25, 3]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [0, -90, 0],
+			"translation": [0, -3.25, 3]
+		},
+		"firstperson_righthand": {
+			"rotation": [-155, 78.5, 173],
+			"translation": [2.75, -1.75, -4.5],
+			"scale": [1, 0.75, 1]
+		},
+		"firstperson_lefthand": {
+			"rotation": [-155, -78.5, 173],
+			"translation": [2.75, -1.75, -4.5],
+			"scale": [1, 0.75, 1]
+		},
+		"gui": {
+			"rotation": [22, 20, 45],
+			"translation": [4.5, -2.75, 0],
+			"scale": [1.23, 1.23, 1.23]
+		},
+		"fixed": {
+			"rotation": [22, 20, 45],
+			"translation": [4.5, -2.75, -1.75],
+			"scale": [1.23, 1.23, 1.23]
+		}
+	}
+}
