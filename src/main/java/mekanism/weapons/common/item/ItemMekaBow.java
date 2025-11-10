@@ -19,7 +19,6 @@ import mekanism.weapons.common.entity.EntityMekaArrow;
 import mekanism.weapons.common.module.ModuleDrawSpeedUnit;
 import mekanism.weapons.common.module.ModuleGravityDampenerUnit;
 import mekanism.weapons.common.module.ModuleWeaponAttackAmplificationUnit;
-import mekanism.weapons.common.module.ModuleAutoFireUnit;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.EntityLivingBase;
@@ -41,7 +40,6 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import mekanism.common.item.ItemMekanism;
 import mekanism.common.item.interfaces.IModeItem;
 import mekanism.common.lib.radial.IGenericRadialModeItem;
 import mekanism.api.radial.RadialData;
@@ -51,6 +49,7 @@ import mekanism.common.lib.radial.data.NestingRadialData;
 import mekanism.common.content.gear.Module;
 import net.minecraft.util.text.ITextComponent;
 import org.jetbrains.annotations.NotNull;
+import net.minecraft.item.ItemBow;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -58,18 +57,42 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class ItemMekaBow extends ItemMekanism implements IEnergizedItem, IModuleContainerItem, IModeItem, IGenericRadialModeItem {
+public class ItemMekaBow extends ItemBow implements IEnergizedItem, IModuleContainerItem, IModeItem, IGenericRadialModeItem {
 
     public ItemMekaBow() {
         super();
         setCreativeTab(MekanismWeaponsItems.tabMekanismWeapons);
         setMaxStackSize(1);
 
-        // Ora registriamo le proprietà in modo pulito e isolato,
-        // usando le istanze dalla nostra nuova classe MekaBowProperties.
-        this.addPropertyOverride(new ResourceLocation("pulling"), MekaBowProperties.PULLING_GETTER);
-        this.addPropertyOverride(new ResourceLocation("pull"), MekaBowProperties.PULL_GETTER);
-    }
+        // Sovrascriviamo le animazioni vanilla. Ora funzionerà.
+this.addPropertyOverride(new ResourceLocation("pulling"), (stack, world, entity) -> 
+        entity != null && entity.isHandActive() && entity.getActiveItemStack() == stack ? 1.0F : 0.0F
+    );
+
+    this.addPropertyOverride(new ResourceLocation("pull"), (stack, world, entity) -> {
+        if (entity == null || entity.getActiveItemStack().getItem() != this) {
+            return 0.0F;
+        }
+
+        // L'ANIMAZIONE LEGGE L'NBT. ESATTAMENTE COME IL SERVER.
+        float drawTimeNeeded = 20.0F;
+        if (stack.hasTagCompound() && stack.getTagCompound().hasKey("mekData", 10)) {
+            NBTTagCompound modules = stack.getTagCompound().getCompoundTag("mekData").getCompoundTag("modules");
+            if (modules.hasKey("draw_speed_unit", 10)) {
+                NBTTagCompound drawSpeedData = modules.getCompoundTag("draw_speed_unit");
+                if (drawSpeedData.getBoolean("enabled")) {
+                    int levelOrdinal = drawSpeedData.getInteger("draw_speed_level");
+                    if (levelOrdinal > 0) {
+                        drawTimeNeeded = 20 - (levelOrdinal * 5);
+                    }
+                }
+            }
+        }
+
+        float charge = (float)(stack.getMaxItemUseDuration() - entity.getItemInUseCount());
+        return charge / drawTimeNeeded;
+    });
+}
     @Override
     public EnumAction getItemUseAction(ItemStack stack) { return EnumAction.BOW; }
 
@@ -180,37 +203,69 @@ public class ItemMekaBow extends ItemMekanism implements IEnergizedItem, IModule
     @Override public double getDurabilityForDisplay(ItemStack stack) { return 1.0D - (getEnergy(stack) / getMaxEnergy(stack)); }
     @Override public int getRGBDurabilityForDisplay(ItemStack stack) { return MathHelper.hsvToRGB(Math.max(0.0F, (float) (getEnergy(stack) / getMaxEnergy(stack))) / 3.0F, 1.0F, 1.0F); }
 
-     @Override
-       public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
-        if (player instanceof EntityPlayer && isModuleEnabled(stack, MekanismWeaponsModules.AUTO_FIRE_UNIT)) {
-            // Usiamo getDrawTicks per sincronizzare perfettamente l'Auto-Fire
-            if ((getMaxItemUseDuration(stack) - count) >= getDrawTicks(stack)) {
-                player.stopActiveHand();
-            }
+    @Override
+    public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
+    int ticksInUse = getMaxItemUseDuration(stack) - count;
+
+    // Controlliamo se il modulo Draw Speed è installato.
+    IModule<ModuleDrawSpeedUnit> drawSpeedModule = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
+    boolean hasDrawSpeed = drawSpeedModule != null && drawSpeedModule.isEnabled();
+
+    // Prendiamo il tempo di carica necessario. Se il modulo c'è, lo usiamo, altrimenti 20.
+    int drawTimeNeeded = hasDrawSpeed ? drawSpeedModule.getCustomInstance().getDrawTicks() : 20;
+
+    // --- LOGICA ---
+    
+    // CASO 1: Auto-Fire è attivo.
+    if (isModuleEnabled(stack, MekanismWeaponsModules.AUTO_FIRE_UNIT)) {
+        if (ticksInUse >= drawTimeNeeded) {
+            player.stopActiveHand(); // Rilascia appena carico.
         }
+        return; // Fine.
     }
 
-   @Override
-    public void onPlayerStoppedUsing(ItemStack stack, World worldIn, EntityLivingBase entityLiving, int timeLeft) {
-        if (worldIn.isRemote) return;
-        if (!(entityLiving instanceof EntityPlayer)) return;
+    // CASO 2: Tiro Manuale, MA con il modulo Draw Speed.
+    // L'animazione sembra un "auto-fire" perché l'arco si carica e poi "scatta".
+    // Questo è il comportamento che cerchiamo per dare la sensazione di velocità.
+    // Quando la carica è completa, fermiamo l'azione per scoccare la freccia.
+    if (hasDrawSpeed) {
+        if (ticksInUse >= drawTimeNeeded) {
+            // Forziamo il rilascio. Questo farà scattare onPlayerStoppedUsing.
+            player.stopActiveHand(); 
+        }
+    }
+    
+    // CASO 3: Arco base senza moduli.
+    // In questo caso, non facciamo nulla. Il giocatore decide quando rilasciare.
+    // onUsingTick non interviene.
+}
 
-        EntityPlayer player = (EntityPlayer) entityLiving;
-        int charge = this.getMaxItemUseDuration(stack) - timeLeft;
-        if (charge <= 0) return;
+@Override
+public void onPlayerStoppedUsing(ItemStack stack, World worldIn, EntityLivingBase entityLiving, int timeLeft) {
+    if (!(entityLiving instanceof EntityPlayer)) return;
+    EntityPlayer player = (EntityPlayer) entityLiving;
+    
+    int charge = this.getMaxItemUseDuration(stack) - timeLeft;
+    if (charge <= 0) return;
 
-        boolean useEnergyArrows = isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
-        ItemStack ammoStack = findAmmo(player);
-        if (ammoStack.isEmpty() && !useEnergyArrows && !player.capabilities.isCreativeMode) return;
+    // ... (tutta la logica per controllare munizioni, energia, ecc. va bene com'era) ...
 
-        float drawTimeNeeded = (float) getDrawTicks(stack);
+    float drawTimeNeeded = (float) getDrawTicks(stack); // Prendiamo il tempo corretto
+    float powerRatio = (float) charge / drawTimeNeeded;
 
-        float powerRatio = (float) charge / drawTimeNeeded;
-        if (powerRatio > 1.0F) powerRatio = 1.0F;
-        if (powerRatio < 0.1F) return;
-
-        float finalPower = (powerRatio * powerRatio + powerRatio * 2.0F) / 3.0F;
-
+    if (powerRatio > 1.0F) powerRatio = 1.0F; // Limitiamo la potenza al 100%
+    
+    boolean useEnergyArrows = isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
+    ItemStack ammoStack = findAmmo(player);
+    if (ammoStack.isEmpty() && !useEnergyArrows && !player.capabilities.isCreativeMode) return;
+    
+    if (powerRatio > 1.0F) powerRatio = 1.0F;
+    if (powerRatio < 0.1F) return;
+    
+    float finalPower = (powerRatio * powerRatio + powerRatio * 2.0F) / 3.0F;
+    
+    // --- Logica Server (sparo e consumo energia) ---
+    if (!worldIn.isRemote) {
         double totalEnergyNeeded = MekanismWeaponsConfig.mekaBowEnergyUsage;
         IModule<ModuleWeaponAttackAmplificationUnit> damageModule = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
         if (damageModule != null && damageModule.isEnabled()) totalEnergyNeeded += MekanismWeaponsConfig.attackAmplificationEnergyUsage * damageModule.getInstalledCount();
@@ -228,20 +283,26 @@ public class ItemMekaBow extends ItemMekanism implements IEnergizedItem, IModule
         if (damageModule != null && damageModule.isEnabled()) finalDamage *= damageModule.getCustomInstance().getDamageBonus(damageModule);
         arrow.setDamage(finalDamage);
         arrow.shoot(player, player.rotationPitch, player.rotationYaw, 0.0F, finalPower * 3.0F, 1.0F);
+        
         if (powerRatio >= 1.0F) arrow.setIsCritical(true);
-        if (useEnergyArrows || player.capabilities.isCreativeMode) arrow.pickupStatus = EntityArrow.PickupStatus.CREATIVE_ONLY;
-        worldIn.spawnEntity(arrow);
-
-        if (!player.capabilities.isCreativeMode && !useEnergyArrows) {
+        
+        if (useEnergyArrows || player.capabilities.isCreativeMode) {
+            arrow.pickupStatus = EntityArrow.PickupStatus.CREATIVE_ONLY;
+        } else {
             ammoStack.shrink(1);
             if (ammoStack.isEmpty()) player.inventory.deleteStack(ammoStack);
         }
-        worldIn.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 1.0F, 1.0F / (itemRand.nextFloat() * 0.4F + 1.2F) + powerRatio * 0.5F);
-        player.addStat(StatList.getObjectUseStats(this));
+        
+        worldIn.spawnEntity(arrow);
     }
     
+    // Suono e statistiche vengono gestiti da entrambi i lati
+    worldIn.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 1.0F, 1.0F / (itemRand.nextFloat() * 0.4F + 1.2F) + powerRatio * 0.5F);
+    player.addStat(StatList.getObjectUseStats(this));
+}
+    
     // Il metodo helper rimane utile per la logica di Auto-Fire
-    private int getDrawTicks(ItemStack stack) {
+    public int getDrawTicks(ItemStack stack) {
         IModule<ModuleDrawSpeedUnit> drawSpeedModule = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
         if (drawSpeedModule != null && drawSpeedModule.isEnabled()) {
             return drawSpeedModule.getCustomInstance().getDrawTicks();
@@ -249,28 +310,9 @@ public class ItemMekaBow extends ItemMekanism implements IEnergizedItem, IModule
         return 20;
     }
 
-    // ==========> INCOLLA IL NUOVO METODO QUI SOTTO <==========
-    private int getDrawTicksForAnimation(ItemStack stack) {
-        if (stack.hasTagCompound()) {
-            NBTTagCompound mekData = stack.getTagCompound().getCompoundTag("mekData");
-            if (mekData.hasKey("modules")) {
-                NBTTagCompound modules = mekData.getCompoundTag("modules");
-                if (modules.hasKey("draw_speed_unit")) {
-                    NBTTagCompound drawSpeedData = modules.getCompoundTag("draw_speed_unit");
-                    if (drawSpeedData.getBoolean("enabled")) {
-                        int level = drawSpeedData.getInteger("draw_speed_level");
-                        if (level > 0) {
-                            return 20 - (level * 5);
-                        }
-                    }
-                }
-            }
-        }
-        return 20; // Valore di default
-    }
-
     // Metodo per trovare le munizioni nell'inventario del giocatore
-    private ItemStack findAmmo(EntityPlayer player) {
+    @Override
+    protected ItemStack findAmmo(EntityPlayer player) {
         if (isArrow(player.getHeldItem(EnumHand.OFF_HAND))) {
             return player.getHeldItem(EnumHand.OFF_HAND);
         } else if (isArrow(player.getHeldItem(EnumHand.MAIN_HAND))) {

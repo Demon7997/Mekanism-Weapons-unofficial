@@ -20,11 +20,7 @@ public class MekanismWeapons {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         MekanismWeaponsConfig.load(event);
-        
-        // v-- AGGIUNGI QUESTA RIGA --v
         MekanismWeaponsEntities.registerEntities();
-        // ^-- FINE DELLA RIGA DA AGGIUNGERE --^
-        
         MekanismWeaponsModules.registerModules();
         proxy.preInit();
     }
