@@ -36,11 +36,12 @@ mekanism.mode.damage.high=High
 mekanism.mode.damage.superhigh=Super-High
 mekanism.mode.damage.extreme=Extreme
 
-#Modalità Drawspeed
+#Modalità Unit
 mekaweapons.hud.off=Off
 mekaweapons.hud.low=Low
 mekaweapons.hud.medium=Medium
 mekaweapons.hud.high=High
+mekaweapons.hud.superhigh=Super-High
 
 #item
 item.mekaweapons.meka_arrow.name=Meka Arrow

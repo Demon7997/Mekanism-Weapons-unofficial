@@ -10,6 +10,7 @@ import mekanism.api.radial.mode.IRadialMode;
 import mekanism.api.radial.mode.NestedRadialMode;
 import mekanism.api.text.IHasTextComponent;
 import mekanism.api.text.ILangEntry;
+import mekanism.api.EnumColor;
 import mekanism.weapons.MekanismWeapons;
 import mekanism.weapons.config.MekanismWeaponsConfig;
 import net.minecraft.entity.player.EntityPlayer;
@@ -37,13 +38,23 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
     }
 
     @Override
+    public void addHUDStrings(IModule<ModuleArrowVelocityUnit> module, EntityPlayer player, Consumer<String> hudStringAdder) {
+        if (module.isEnabled()) {
+            VelocityMode mode = velocityMode.get();
+            hudStringAdder.accept(EnumColor.DARK_GREY + "Velocity: " + EnumColor.INDIGO + mode.getTextComponent().getUnformattedComponentText());
+        }
+    }
+
+    @Override
     public void changeMode(IModule<ModuleArrowVelocityUnit> module, EntityPlayer player, ItemStack stack, int shift, boolean displayChangeMessage) {
         VelocityMode current = velocityMode.get();
         int newIndex = Math.floorMod(current.ordinal() + shift, module.getInstalledCount() + 1);
         VelocityMode newMode = VelocityMode.values()[newIndex];
+        
         velocityMode.set(newMode);
+        
         if (displayChangeMessage) {
-            player.sendMessage(getModeScrollComponent(module, stack));
+            player.sendMessage(new TextComponentString(EnumColor.DARK_GREY + "Mekanism: " + EnumColor.GREY + "Velocity: " + EnumColor.INDIGO + newMode.getTextComponent().getUnformattedComponentText()));
         }
     }
 
@@ -95,7 +106,14 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
         VelocityMode(float m, String l) { multiplier = m; label = l; }
         @Override public ITextComponent getTextComponent() { return new TextComponentString(label); }
         public float getMultiplier() { return multiplier; }
-        @Override public ITextComponent sliceName() { return getTextComponent(); }
+
+       @Override
+        public ITextComponent sliceName() {
+            ITextComponent component = getTextComponent();
+            component.getStyle().setColor(EnumColor.INDIGO.textFormatting);
+            return component;
+        }
+
         @Override public ResourceLocation icon() {
             if (this == OFF) return new ResourceLocation("mekanism", "textures/gui/disabled.png");
             return new ResourceLocation("mekanism", "textures/gui/modes/scroll.png");

@@ -19,6 +19,8 @@ import mekanism.weapons.common.entity.EntityMekaArrow;
 import mekanism.weapons.common.module.ModuleDrawSpeedUnit;
 import mekanism.weapons.common.module.ModuleGravityDampenerUnit;
 import mekanism.weapons.common.module.ModuleWeaponAttackAmplificationUnit;
+import mekanism.weapons.common.module.ModuleArrowVelocityUnit;
+import mekanism.weapons.common.module.ModuleCompoundArrowUnit;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.EntityLivingBase;
@@ -59,13 +61,12 @@ import java.util.List;
 
 public class ItemMekaBow extends ItemBow implements IEnergizedItem, IModuleContainerItem, IModeItem, IGenericRadialModeItem {
 
-    public ItemMekaBow() {
-        super();
-        setCreativeTab(MekanismWeaponsItems.tabMekanismWeapons);
-        setMaxStackSize(1);
+public ItemMekaBow() {
+    super();
+    setCreativeTab(MekanismWeaponsItems.tabMekanismWeapons);
+    setMaxStackSize(1);
 
-        // Sovrascriviamo le animazioni vanilla. Ora funzionerà.
-this.addPropertyOverride(new ResourceLocation("pulling"), (stack, world, entity) -> 
+    this.addPropertyOverride(new ResourceLocation("pulling"), (stack, world, entity) -> 
         entity != null && entity.isHandActive() && entity.getActiveItemStack() == stack ? 1.0F : 0.0F
     );
 
@@ -73,26 +74,21 @@ this.addPropertyOverride(new ResourceLocation("pulling"), (stack, world, entity)
         if (entity == null || entity.getActiveItemStack().getItem() != this) {
             return 0.0F;
         }
-
-        // L'ANIMAZIONE LEGGE L'NBT. ESATTAMENTE COME IL SERVER.
-        float drawTimeNeeded = 20.0F;
-        if (stack.hasTagCompound() && stack.getTagCompound().hasKey("mekData", 10)) {
-            NBTTagCompound modules = stack.getTagCompound().getCompoundTag("mekData").getCompoundTag("modules");
-            if (modules.hasKey("draw_speed_unit", 10)) {
-                NBTTagCompound drawSpeedData = modules.getCompoundTag("draw_speed_unit");
-                if (drawSpeedData.getBoolean("enabled")) {
-                    int levelOrdinal = drawSpeedData.getInteger("draw_speed_level");
-                    if (levelOrdinal > 0) {
-                        drawTimeNeeded = 20 - (levelOrdinal * 5);
-                    }
-                }
-            }
-        }
-
-        float charge = (float)(stack.getMaxItemUseDuration() - entity.getItemInUseCount());
-        return charge / drawTimeNeeded;
+        
+        // Quanto tempo hai tenuto premuto?
+        float chargeTime = (float)(stack.getMaxItemUseDuration() - entity.getItemInUseCount());
+        
+        // Quanto veloce è l'arco?
+        float multiplier = getDrawSpeedMultiplier(stack);
+        
+        // Calcoliamo il progresso.
+        float progress = (chargeTime * multiplier) / 20.0F;
+        
+        if (progress > 1.0F) return 1.0F;
+        return progress;
     });
 }
+
     @Override
     public EnumAction getItemUseAction(ItemStack stack) { return EnumAction.BOW; }
 
@@ -101,16 +97,20 @@ this.addPropertyOverride(new ResourceLocation("pulling"), (stack, world, entity)
 
 
 @Nonnull
-    @Override
-    public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, @Nonnull EnumHand hand) {
-        ItemStack stack = player.getHeldItem(hand);
-        boolean hasAmmo = !findAmmo(player).isEmpty() || isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
-        if (!player.capabilities.isCreativeMode && !hasAmmo) {
-            return new ActionResult<>(EnumActionResult.FAIL, stack);
-        }
-        player.setActiveHand(hand);
-        return new ActionResult<>(EnumActionResult.SUCCESS, stack);
+@Override
+public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, @Nonnull EnumHand hand) {
+    ItemStack stack = player.getHeldItem(hand);
+    
+    // AZZERA IL TIMER ALL'INIZIO DI OGNI UTILIZZO
+    ItemDataUtils.setInt(stack, "charge_timer", 0);
+
+    boolean hasAmmo = !findAmmo(player).isEmpty() || isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
+    if (!player.capabilities.isCreativeMode && !hasAmmo) {
+        return new ActionResult<>(EnumActionResult.FAIL, stack);
     }
+    player.setActiveHand(hand);
+    return new ActionResult<>(EnumActionResult.SUCCESS, stack);
+}
 
     @Override
      public ICapabilityProvider initCapabilities(ItemStack stack, @Nullable NBTTagCompound nbt) {
@@ -203,113 +203,154 @@ this.addPropertyOverride(new ResourceLocation("pulling"), (stack, world, entity)
     @Override public double getDurabilityForDisplay(ItemStack stack) { return 1.0D - (getEnergy(stack) / getMaxEnergy(stack)); }
     @Override public int getRGBDurabilityForDisplay(ItemStack stack) { return MathHelper.hsvToRGB(Math.max(0.0F, (float) (getEnergy(stack) / getMaxEnergy(stack))) / 3.0F, 1.0F, 1.0F); }
 
-    @Override
-    public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
-    int ticksInUse = getMaxItemUseDuration(stack) - count;
-
-    // Controlliamo se il modulo Draw Speed è installato.
-    IModule<ModuleDrawSpeedUnit> drawSpeedModule = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
-    boolean hasDrawSpeed = drawSpeedModule != null && drawSpeedModule.isEnabled();
-
-    // Prendiamo il tempo di carica necessario. Se il modulo c'è, lo usiamo, altrimenti 20.
-    int drawTimeNeeded = hasDrawSpeed ? drawSpeedModule.getCustomInstance().getDrawTicks() : 20;
-
-    // --- LOGICA ---
-    
-    // CASO 1: Auto-Fire è attivo.
+        
+@Override
+public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
+    // Solo se Auto-Fire è attivo
     if (isModuleEnabled(stack, MekanismWeaponsModules.AUTO_FIRE_UNIT)) {
-        if (ticksInUse >= drawTimeNeeded) {
-            player.stopActiveHand(); // Rilascia appena carico.
-        }
-        return; // Fine.
-    }
-
-    // CASO 2: Tiro Manuale, MA con il modulo Draw Speed.
-    // L'animazione sembra un "auto-fire" perché l'arco si carica e poi "scatta".
-    // Questo è il comportamento che cerchiamo per dare la sensazione di velocità.
-    // Quando la carica è completa, fermiamo l'azione per scoccare la freccia.
-    if (hasDrawSpeed) {
-        if (ticksInUse >= drawTimeNeeded) {
-            // Forziamo il rilascio. Questo farà scattare onPlayerStoppedUsing.
-            player.stopActiveHand(); 
+        int actualCharge = getMaxItemUseDuration(stack) - count;
+        float multiplier = getDrawSpeedMultiplier(stack);
+        
+        // Calcoliamo se abbiamo raggiunto la carica "virtuale" di 20 (massimo vanilla)
+        if ((actualCharge * multiplier) >= 20.0F) {
+            player.stopActiveHand();
         }
     }
-    
-    // CASO 3: Arco base senza moduli.
-    // In questo caso, non facciamo nulla. Il giocatore decide quando rilasciare.
-    // onUsingTick non interviene.
 }
 
 @Override
-public void onPlayerStoppedUsing(ItemStack stack, World worldIn, EntityLivingBase entityLiving, int timeLeft) {
-    if (!(entityLiving instanceof EntityPlayer)) return;
-    EntityPlayer player = (EntityPlayer) entityLiving;
-    
-    int charge = this.getMaxItemUseDuration(stack) - timeLeft;
-    if (charge <= 0) return;
+    public void onPlayerStoppedUsing(ItemStack stack, World worldIn, EntityLivingBase entityLiving, int timeLeft) {
+        if (!(entityLiving instanceof EntityPlayer)) return;
+        EntityPlayer player = (EntityPlayer) entityLiving;
 
-    // ... (tutta la logica per controllare munizioni, energia, ecc. va bene com'era) ...
-
-    float drawTimeNeeded = (float) getDrawTicks(stack); // Prendiamo il tempo corretto
-    float powerRatio = (float) charge / drawTimeNeeded;
-
-    if (powerRatio > 1.0F) powerRatio = 1.0F; // Limitiamo la potenza al 100%
-    
-    boolean useEnergyArrows = isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
-    ItemStack ammoStack = findAmmo(player);
-    if (ammoStack.isEmpty() && !useEnergyArrows && !player.capabilities.isCreativeMode) return;
-    
-    if (powerRatio > 1.0F) powerRatio = 1.0F;
-    if (powerRatio < 0.1F) return;
-    
-    float finalPower = (powerRatio * powerRatio + powerRatio * 2.0F) / 3.0F;
-    
-    // --- Logica Server (sparo e consumo energia) ---
-    if (!worldIn.isRemote) {
-        double totalEnergyNeeded = MekanismWeaponsConfig.mekaBowEnergyUsage;
-        IModule<ModuleWeaponAttackAmplificationUnit> damageModule = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
-        if (damageModule != null && damageModule.isEnabled()) totalEnergyNeeded += MekanismWeaponsConfig.attackAmplificationEnergyUsage * damageModule.getInstalledCount();
-        if (isModuleEnabled(stack, MekanismWeaponsModules.AUTO_FIRE_UNIT)) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowAutofireEnergyUsage;
-        IModule<ModuleDrawSpeedUnit> drawSpeedModule = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
-        if (drawSpeedModule != null && drawSpeedModule.isEnabled()) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowDrawSpeedUsage * drawSpeedModule.getInstalledCount();
-        if (isModuleEnabled(stack, MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT)) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowGravityDampenerUsage;
-        if (useEnergyArrows) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowEnergyArrowUsage;
-
-        if (getEnergy(stack) < totalEnergyNeeded && !player.capabilities.isCreativeMode) return;
-        if (!player.capabilities.isCreativeMode) setEnergy(stack, getEnergy(stack) - totalEnergyNeeded);
-
-        EntityMekaArrow arrow = new EntityMekaArrow(worldIn, player);
-        float finalDamage = MekanismWeaponsConfig.mekaBowBaseDamage;
-        if (damageModule != null && damageModule.isEnabled()) finalDamage *= damageModule.getCustomInstance().getDamageBonus(damageModule);
-        arrow.setDamage(finalDamage);
-        arrow.shoot(player, player.rotationPitch, player.rotationYaw, 0.0F, finalPower * 3.0F, 1.0F);
+        // 1. Calcolo della carica
+        int actualCharge = this.getMaxItemUseDuration(stack) - timeLeft;
+        float multiplier = getDrawSpeedMultiplier(stack);
+        int effectiveCharge = (int) (actualCharge * multiplier);
         
-        if (powerRatio >= 1.0F) arrow.setIsCritical(true);
-        
-        if (useEnergyArrows || player.capabilities.isCreativeMode) {
-            arrow.pickupStatus = EntityArrow.PickupStatus.CREATIVE_ONLY;
-        } else {
-            ammoStack.shrink(1);
-            if (ammoStack.isEmpty()) player.inventory.deleteStack(ammoStack);
+        float velocity = ItemBow.getArrowVelocity(effectiveCharge); // 0.0F a 1.0F
+        if ((double)velocity < 0.1D) return;
+
+        // 2. Recupero Moduli Nuovi
+        IModule<ModuleArrowVelocityUnit> velocityModule = getModule(stack, MekanismWeaponsModules.ARROW_VELOCITY_UNIT);
+        IModule<ModuleCompoundArrowUnit> compoundModule = getModule(stack, MekanismWeaponsModules.COMPOUND_ARROW_UNIT);
+
+        // 3. Calcolo parametro Velocità e Numero Frecce
+        float velocityMult = 1.0F;
+        if (velocityModule != null && velocityModule.isEnabled()) {
+            velocityMult = velocityModule.getCustomInstance().getVelocityMultiplier(velocityModule);
         }
-        
-        worldIn.spawnEntity(arrow);
-    }
-    
-    // Suono e statistiche vengono gestiti da entrambi i lati
-    worldIn.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 1.0F, 1.0F / (itemRand.nextFloat() * 0.4F + 1.2F) + powerRatio * 0.5F);
-    player.addStat(StatList.getObjectUseStats(this));
-}
-    
-    // Il metodo helper rimane utile per la logica di Auto-Fire
-    public int getDrawTicks(ItemStack stack) {
-        IModule<ModuleDrawSpeedUnit> drawSpeedModule = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
-        if (drawSpeedModule != null && drawSpeedModule.isEnabled()) {
-            return drawSpeedModule.getCustomInstance().getDrawTicks();
-        }
-        return 20;
-    }
 
+        int arrowCount = 1;
+        if (compoundModule != null && compoundModule.isEnabled()) {
+            arrowCount = compoundModule.getCustomInstance().getArrowCount();
+        }
+
+        // 4. Verifica Munizioni
+        boolean useEnergyArrows = isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
+        ItemStack ammoStack = findAmmo(player);
+
+        // Se non usa frecce energetiche e non ha munizioni, stop (a meno che non sia in creativa)
+        if (!useEnergyArrows && !player.capabilities.isCreativeMode && ammoStack.isEmpty()) return;
+
+        if (!worldIn.isRemote) {
+            // 5. Calcolo Energia Totale
+            double totalEnergyNeeded = MekanismWeaponsConfig.mekaBowEnergyUsage;
+            
+            // Costo: Attack Amplification
+            IModule<ModuleWeaponAttackAmplificationUnit> damageModule = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
+            if (damageModule != null && damageModule.isEnabled()) {
+                totalEnergyNeeded += MekanismWeaponsConfig.attackAmplificationEnergyUsage * damageModule.getInstalledCount();
+            }
+            
+            // Costo: Auto-Fire
+            if (isModuleEnabled(stack, MekanismWeaponsModules.AUTO_FIRE_UNIT)) {
+                totalEnergyNeeded += MekanismWeaponsConfig.mekaBowAutofireEnergyUsage;
+            }
+            
+            // Costo: Draw Speed
+            IModule<ModuleDrawSpeedUnit> drawSpeedModule = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
+            if (drawSpeedModule != null && drawSpeedModule.isEnabled()) {
+                totalEnergyNeeded += MekanismWeaponsConfig.mekaBowDrawSpeedUsage * drawSpeedModule.getInstalledCount();
+            }
+            
+            // Costo: Gravity Dampener
+            if (isModuleEnabled(stack, MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT)) {
+                totalEnergyNeeded += MekanismWeaponsConfig.mekaBowGravityDampenerUsage;
+            }
+            
+            // Costo: Energy Arrows (Base)
+            if (useEnergyArrows) {
+                totalEnergyNeeded += MekanismWeaponsConfig.mekaBowEnergyArrowUsage;
+                // Se spariamo frecce multiple di energia, moltiplichiamo il costo base
+                if (arrowCount > 1) {
+                    totalEnergyNeeded += (MekanismWeaponsConfig.mekaBowEnergyArrowUsage * (arrowCount - 1));
+                }
+            }
+
+            // Costo: Velocity Module
+            if (velocityModule != null) {
+                totalEnergyNeeded += velocityModule.getCustomInstance().getEnergyCost(velocityModule);
+            }
+
+            // Costo: Compound Arrow Module
+            if (compoundModule != null) {
+                totalEnergyNeeded += compoundModule.getCustomInstance().getEnergyCost();
+            }
+
+            // Verifica Disponibilità Energia
+            if (getEnergy(stack) < totalEnergyNeeded && !player.capabilities.isCreativeMode) return;
+            if (!player.capabilities.isCreativeMode) setEnergy(stack, getEnergy(stack) - totalEnergyNeeded);
+
+            // 6. Ciclo di Sparo (Per frecce multiple)
+            for (int i = 0; i < arrowCount; i++) {
+                // Controllo munizioni dentro il loop (se usiamo frecce fisiche, ne servono N)
+                if (!useEnergyArrows && !player.capabilities.isCreativeMode) {
+                    ammoStack = findAmmo(player); // Aggiorna lo stack
+                    if (ammoStack.isEmpty()) break; // Finito le frecce
+                }
+
+                EntityMekaArrow arrow = new EntityMekaArrow(worldIn, player);
+                
+                // Danno
+                float finalDamage = MekanismWeaponsConfig.mekaBowBaseDamage;
+                if (damageModule != null && damageModule.isEnabled()) {
+                    finalDamage *= damageModule.getCustomInstance().getDamageBonus(damageModule);
+                }
+                arrow.setDamage(finalDamage);
+
+                // Velocità e Mira
+                // velocity * 3.0F è vanilla. Moltiplichiamo per velocityMult.
+                // 1.0F è l'imprecisione (divergenza). Se spari tante frecce, aumentarla leggermente (es. 2.0F o 3.0F) le fa sparpagliare meglio.
+                float spread = (arrowCount > 1) ? 3.0F : 1.0F; 
+                arrow.shoot(player, player.rotationPitch, player.rotationYaw, 0.0F, velocity * 3.0F * velocityMult, spread);
+
+                if (velocity >= 1.0F) {
+                    arrow.setIsCritical(true);
+                }
+
+                // Gestione consumo oggetto freccia
+                if (useEnergyArrows || player.capabilities.isCreativeMode) {
+                    arrow.pickupStatus = EntityArrow.PickupStatus.CREATIVE_ONLY;
+                } else {
+                    ammoStack.shrink(1);
+                    if (ammoStack.isEmpty()) {
+                        player.inventory.deleteStack(ammoStack);
+                    }
+                }
+
+                worldIn.spawnEntity(arrow);
+            }
+        }
+
+        // Suono
+        // Modifichiamo il pitch in base alla velocità per dare un feedback sonoro (più veloce = suono più acuto)
+        float pitch = 1.0F / (itemRand.nextFloat() * 0.4F + 1.2F) + velocity * 0.5F;
+        if (velocityMult > 1.0F) pitch += (velocityMult * 0.1F); // Leggermente più acuto se veloce
+        
+        worldIn.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 1.0F, pitch);
+        player.addStat(StatList.getObjectUseStats(this));
+    }
     // Metodo per trovare le munizioni nell'inventario del giocatore
     @Override
     protected ItemStack findAmmo(EntityPlayer player) {
@@ -398,5 +439,20 @@ public void onPlayerStoppedUsing(ItemStack stack, World worldIn, EntityLivingBas
                 return;
             }
         }
+
     }
+
+    public float getDrawSpeedMultiplier(ItemStack stack) {
+    // Valore base (1.0 = velocità vanilla)
+    float multiplier = 1.0F;
+    
+    IModule<ModuleDrawSpeedUnit> module = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
+    if (module != null && module.isEnabled()) {
+        // ORA USIAMO DIRETTAMENTE IL MOLTIPLICATORE TIPO INSANIUM
+        // Non facciamo più calcoli strani con 20 / tick.
+        multiplier = module.getCustomInstance().getDrawSpeedMultiplier();
+    }
+    
+    return multiplier;
+}
 }

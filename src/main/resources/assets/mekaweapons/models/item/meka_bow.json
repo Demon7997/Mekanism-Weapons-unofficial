@@ -533,21 +533,21 @@
     "overrides": [
         {
             "predicate": {
-                "mekanism:pulling": 1
+                "pulling": 1
             },
             "model": "mekaweapons:item/meka_bow_pulling_0"
         },
         {
             "predicate": {
-                "mekanism:pulling": 1,
-                "mekanism:pull": 0.65
+                "pulling": 1,
+                "pull": 0.65
             },
             "model": "mekaweapons:item/meka_bow_pulling_1"
         },
         {
             "predicate": {
-                "mekanism:pulling": 1,
-                "mekanism:pull": 0.9
+                "pulling": 1,
+                "pull": 0.9
             },
             "model": "mekaweapons:item/meka_bow_pulling_2"
         }

@@ -10,16 +10,14 @@ import mekanism.api.radial.RadialData;
 import mekanism.api.radial.mode.IRadialMode;
 import mekanism.api.radial.mode.NestedRadialMode;
 import mekanism.api.text.IHasTextComponent;
-import mekanism.common.util.ItemDataUtils; // Import necessario
-import mekanism.common.util.LangUtils;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound; // Import necessario
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import org.jetbrains.annotations.Nullable;
+import mekanism.common.util.LangUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,34 +39,34 @@ public class ModuleDrawSpeedUnit implements ICustomModule<ModuleDrawSpeedUnit> {
     public void addHUDStrings(IModule<ModuleDrawSpeedUnit> module, EntityPlayer player, Consumer<String> hudStringAdder) {
         if (module.isEnabled()) {
             DrawSpeedLevel level = speedLevelMode.get();
+            // MODIFICA: Ora usa LangUtils.localize per scrivere "Low", "High" ecc. invece del numero
             hudStringAdder.accept(EnumColor.DARK_GREY + "Draw Speed: " + EnumColor.INDIGO + LangUtils.localize(level.getLangKey()));
         }
     }
 
     @Override
-public void changeMode(IModule<ModuleDrawSpeedUnit> module, EntityPlayer player, ItemStack stack, int shift, boolean displayChangeMessage) {
-    // Calcoliamo la nuova modalità
-    DrawSpeedLevel current = speedLevelMode.get();
-    int newIndex = Math.floorMod(current.ordinal() + shift, module.getInstalledCount() + 1);
-    DrawSpeedLevel newMode = DrawSpeedLevel.values()[newIndex];
-    
-    // La impostiamo (questo aggiorna l'NBT in memoria)
-    speedLevelMode.set(newMode);
-    
-    // QUESTA È LA RIGA CHE RISOLVE TUTTO.
-    // Diciamo all'inventario del giocatore che qualcosa è cambiato, forzando la sincronizzazione.
-    if (!player.world.isRemote) {
-        player.inventory.markDirty(); 
+    public void changeMode(IModule<ModuleDrawSpeedUnit> module, EntityPlayer player, ItemStack stack, int shift, boolean displayChangeMessage) {
+        DrawSpeedLevel current = speedLevelMode.get();
+        int newIndex = Math.floorMod(current.ordinal() + shift, module.getInstalledCount() + 1);
+        DrawSpeedLevel newMode = DrawSpeedLevel.values()[newIndex];
+        
+        speedLevelMode.set(newMode);
+        
+        if (!player.world.isRemote) {
+            player.inventory.markDirty(); 
+        }
+        
+        if (displayChangeMessage) {
+            // MODIFICA: Usa LangUtils per scrivere OFF/Low/Medium/High in chat
+            player.sendMessage(new TextComponentString(EnumColor.DARK_GREY + "Mekanism: " + EnumColor.GREY + "Draw Speed: " + EnumColor.INDIGO + LangUtils.localize(newMode.getLangKey())));
+        }
     }
-    
-    // Mostriamo il messaggio al giocatore
-    if (displayChangeMessage) {
-        player.sendMessage(new TextComponentString(EnumColor.DARK_GREY + "Mekanism: " + EnumColor.GREY + "Draw Speed: " + LangUtils.localize(newMode.getLangKey())));
-    }
-}
 
-    public int getDrawTicks() {
-        return speedLevelMode.get().getDrawTicks();
+    // *** MODIFICA IMPORTANTE ***
+    // Non restituiamo più i tick (int), ma il moltiplicatore (float)
+    // Insanium usava un moltiplicatore float diretto.
+    public float getDrawSpeedMultiplier() {
+        return speedLevelMode.get().getMultiplier();
     }
     
     @Override
@@ -92,20 +90,17 @@ public void changeMode(IModule<ModuleDrawSpeedUnit> module, EntityPlayer player,
         return null;
     }
     
-@Override
-public <MODE extends IRadialMode> boolean setMode(IModule<ModuleDrawSpeedUnit> module, EntityPlayer player, ItemStack stack, RadialData<MODE> radialData, MODE mode) {
-    if (mode instanceof DrawSpeedLevel) {
-        // Impostiamo la nuova modalità scelta dal menu radiale
-        speedLevelMode.set((DrawSpeedLevel) mode);
-
-        // E ANCHE QUI, FORZIAMO LA SINCRONIZZAZIONE.
-        if (!player.world.isRemote) {
-            player.inventory.markDirty();
+    @Override
+    public <MODE extends IRadialMode> boolean setMode(IModule<ModuleDrawSpeedUnit> module, EntityPlayer player, ItemStack stack, RadialData<MODE> radialData, MODE mode) {
+        if (mode instanceof DrawSpeedLevel) {
+            speedLevelMode.set((DrawSpeedLevel) mode);
+            if (!player.world.isRemote) {
+                player.inventory.markDirty();
+            }
+            return true;
         }
-        return true;
+        return false;
     }
-    return false;
-}
     
      public enum DrawSpeedLevel implements IRadialMode, IHasTextComponent {
         OFF("mekaweapons.hud.off", EnumColor.WHITE), 
@@ -125,18 +120,20 @@ public <MODE extends IRadialMode> boolean setMode(IModule<ModuleDrawSpeedUnit> m
             return langKey;
         }
 
-        public int getDrawTicks() {
-            if (this == OFF) return 20;
-            return 20 - (this.ordinal() * 5);
+        public float getMultiplier() {
+            if (this == OFF) return 1.0F;
+            return 1.0F + (float)this.ordinal(); 
         }
 
         @Override
         public ITextComponent getTextComponent() {
-            return new TextComponentString(Integer.toString(this.ordinal()));
+            // Restituisce "OFF", "Low", "Medium", "High"
+            return new TextComponentTranslation(this.langKey);
         }
         
         @Override
         public ITextComponent sliceName() {
+            // Restituisce il nome tradotto (OFF, Low, Medium...) colorato
             ITextComponent component = new TextComponentTranslation(this.langKey);
             component.getStyle().setColor(this.color.textFormatting);
             return component;
