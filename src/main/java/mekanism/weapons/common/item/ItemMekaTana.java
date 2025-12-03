@@ -101,7 +101,8 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
     @Override
     public double getMaxTransfer(ItemStack stack) {
         IModule<ModuleEnergyUnit> module = getModule(stack, MekanismModules.ENERGY_UNIT);
-        return module == null ? super.getMaxTransfer(stack) : module.getCustomInstance().getChargeRate(module);
+        // Se c'è il modulo usa quello, altrimenti usa il rate base della config
+        return module != null ? module.getCustomInstance().getChargeRate(module) : MekanismWeaponsConfig.mekaTanaBaseChargeRate;
     }
 
     // --- Logica di Combattimento (Tuo codice originale, corretto) ---
@@ -159,9 +160,16 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
     public boolean hitEntity(ItemStack stack, EntityLivingBase target, EntityLivingBase attacker) {
         double energyCost = MekanismWeaponsConfig.mekaTanaEnergyUsage;
         IModule<ModuleWeaponAttackAmplificationUnit> module = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
+        
         if (module != null && module.isEnabled()) {
             energyCost += module.getCustomInstance().getEnergyCost(module);
         }
+
+        // Se chi attacca è un player in Creative, NON consumare energia
+        if (attacker instanceof EntityPlayer && ((EntityPlayer) attacker).capabilities.isCreativeMode) {
+            return true;
+        }
+
         if (getEnergy(stack) >= energyCost) {
             setEnergy(stack, getEnergy(stack) - energyCost);
         }
@@ -174,19 +182,27 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, @NotNull EnumHand hand) {
         ItemStack stack = player.getHeldItem(hand);
         IModule<ModuleTeleportationUnit> module = getModule(stack, MekanismModules.TELEPORTATION_UNIT);
+        
         if (module != null && module.isEnabled()) {
             RayTraceResult pos = MekanismUtils.rayTrace(world, player, MekanismWeaponsConfig.mekaTanaMaxTeleportReach);
             if (pos != null && pos.typeOfHit == RayTraceResult.Type.BLOCK) {
                 double distance = player.getDistanceSq(pos.getBlockPos());
                 double energyCost = MekanismWeaponsConfig.mekaTanaTeleportEnergyUsage * (distance / 10D);
-                if (getEnergy(stack) >= energyCost) {
+                
+                // Se sei in creative o hai abbastanza energia
+                if (player.capabilities.isCreativeMode || getEnergy(stack) >= energyCost) {
                     BlockPos blockPos = pos.getBlockPos();
                     if (world.isAirBlock(blockPos.up()) && world.isAirBlock(blockPos.up(2))) {
                         if (!world.isRemote) {
                             if (player.isRiding()) player.dismountRidingEntity();
                             player.setPositionAndUpdate(blockPos.getX() + 0.5, blockPos.getY() + 1.5, blockPos.getZ() + 0.5);
                             player.fallDistance = 0.0F;
-                            setEnergy(stack, getEnergy(stack) - energyCost);
+                            
+                            // Consuma energia SOLO se NON sei in creative
+                            if (!player.capabilities.isCreativeMode) {
+                                setEnergy(stack, getEnergy(stack) - energyCost);
+                            }
+                            
                             world.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_ENDERMEN_TELEPORT, SoundCategory.PLAYERS, 1.0F, 1.0F);
                         }
                         return new ActionResult<>(EnumActionResult.SUCCESS, stack);

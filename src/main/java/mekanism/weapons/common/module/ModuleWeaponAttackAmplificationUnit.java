@@ -11,7 +11,7 @@ import mekanism.api.radial.mode.IRadialMode;
 import mekanism.api.radial.mode.NestedRadialMode;
 import mekanism.api.text.IHasTextComponent;
 import mekanism.common.MekanismLang;
-import mekanism.weapons.MekanismWeapons;
+import mekanism.common.util.LangUtils;
 import mekanism.weapons.config.MekanismWeaponsConfig;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<ModuleWeaponAttackAmplificationUnit> {
+
+    // ID Statico per sicurezza (allineato alla cartella asset)
+    public static final ResourceLocation RADIAL_ID = new ResourceLocation("mekaweapons", "damage_amplification");
 
     private IModuleConfigItem<DamageMode> damageMode;
 
@@ -44,31 +47,29 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
     }
 
     @Override
-public void addHUDStrings(IModule<ModuleWeaponAttackAmplificationUnit> module, EntityPlayer player, Consumer<String> hudStringAdder) {
-    // La logica è la stessa, ma usa i parametri corretti
-    if (module.isEnabled()) {
-        DamageMode mode = damageMode.get();
-        
-        // Usiamo il metodo standard di Minecraft per la traduzione
-        String label = new TextComponentTranslation("mekaweapons.hud.damage_amplification").getUnformattedText();
-        
-        // Calcoliamo il danno
-        double damage = MekanismWeaponsConfig.mekaTanaBaseDamage * mode.getMultiplier();
-        
-        // Costruiamo la stringa con i codici colore corretti
-        String hudString = EnumColor.DARK_GREY + label + ": " + EnumColor.INDIGO + (int)damage;
-        
-        // Invece di "list.add", usiamo "hudStringAdder.accept" come richiesto dall'interfaccia
-        hudStringAdder.accept(hudString);
+    public void addHUDStrings(IModule<ModuleWeaponAttackAmplificationUnit> module, EntityPlayer player, Consumer<String> hudStringAdder) {
+        if (module.isEnabled()) {
+            DamageMode mode = damageMode.get();
+            String label = new TextComponentTranslation("mekaweapons.hud.damage_amplification").getUnformattedText();
+            double damage = MekanismWeaponsConfig.mekaTanaBaseDamage * mode.getMultiplier();
+            String hudString = EnumColor.DARK_GREY + label + ": " + EnumColor.INDIGO + (int)damage;
+            hudStringAdder.accept(hudString);
+        }
     }
-}
 
     @Override
     public void changeMode(IModule<ModuleWeaponAttackAmplificationUnit> module, EntityPlayer player, ItemStack stack, int shift, boolean displayChangeMessage) {
         DamageMode current = damageMode.get();
         int newIndex = Math.floorMod(current.ordinal() + shift, module.getInstalledCount() + 2);
         DamageMode newMode = DamageMode.byIndex(newIndex);
+        
         damageMode.set(newMode);
+        
+        // Aggiunto salvataggio per sicurezza
+        if (!player.world.isRemote) {
+            player.inventory.markDirty();
+        }
+        
         if (displayChangeMessage) {
             player.sendMessage(getModeScrollComponent(module, stack));
         }
@@ -94,25 +95,38 @@ public void addHUDStrings(IModule<ModuleWeaponAttackAmplificationUnit> module, E
     @Override
     public void addRadialModes(IModule<ModuleWeaponAttackAmplificationUnit> module, ItemStack stack, Consumer<NestedRadialMode> adder) {
         if (module.isEnabled()) {
-            RadialData<DamageMode> radialData = new RadialData<DamageMode>(new ResourceLocation(MekanismWeapons.MODID, "damage_amplification")) {
+            RadialData<DamageMode> radialData = new RadialData<DamageMode>(RADIAL_ID) {
                 @Override public List<DamageMode> getModes() {
                     return Arrays.asList(Arrays.copyOfRange(DamageMode.values(), 0, module.getInstalledCount() + 2));
                 }
             };
-            adder.accept(new NestedRadialMode(radialData, new TextComponentTranslation(module.getData().getTranslationKey()), new ResourceLocation("mekanism", "textures/gui/disabled.png")));
+            
+            // 1. Creiamo la stringa colorata
+            String nomeColorato = EnumColor.RED + LangUtils.localize(module.getData().getTranslationKey());
+            
+            // 2. La passiamo dentro TextComponentString
+            adder.accept(new NestedRadialMode(radialData, new TextComponentString(nomeColorato), 
+                new ResourceLocation("mekaweapons", "textures/gui/radial/damage_medium.png")));
         }
     }
 
     @Nullable
     @Override
     public <MODE extends IRadialMode> MODE getMode(IModule<ModuleWeaponAttackAmplificationUnit> module, ItemStack stack, RadialData<MODE> radialData) {
-        return (MODE) damageMode.get();
+        // Controllo ID per evitare conflitti futuri
+        if (radialData.getIdentifier().equals(RADIAL_ID)) {
+            return (MODE) damageMode.get();
+        }
+        return null;
     }
 
     @Override
     public <MODE extends IRadialMode> boolean setMode(IModule<ModuleWeaponAttackAmplificationUnit> module, EntityPlayer player, ItemStack stack, RadialData<MODE> radialData, MODE mode) {
         if (mode instanceof DamageMode) {
             damageMode.set((DamageMode) mode);
+            if (!player.world.isRemote) {
+                player.inventory.markDirty();
+            }
             return true;
         }
         return false;
@@ -169,6 +183,37 @@ public void addHUDStrings(IModule<ModuleWeaponAttackAmplificationUnit> module, E
             return component;
         }
 
-        @Override public ResourceLocation icon() { return new ResourceLocation(MekanismWeapons.MODID, "gui/radial/damage_off.png"); }
+        @Override 
+        public ResourceLocation icon() { 
+            // Punta al file off.png nella tua cartella
+            if (this == OFF) {
+                return new ResourceLocation("mekaweapons", "textures/gui/radial/off.png");
+            }
+            
+            String nomeFile;
+            switch (this) {
+                case LOW:
+                    nomeFile = "damage_low.png";
+                    break;
+                case MEDIUM:
+                    nomeFile = "damage_medium.png";
+                    break;
+                case HIGH:
+                    nomeFile = "damage_high.png";
+                    break;
+                case SUPER_HIGH:
+                    nomeFile = "damage_super.png";
+                    break;
+                case ULTRA_HIGH:
+                    // Se hai un file extreme usa quello, altrimenti ricicla super
+                    nomeFile = "damage_extreme.png"; 
+                    break;
+                default:
+                    nomeFile = "damage_low.png";
+            }
+            
+            // Percorso corretto con "textures/" e ID "mekaweapons"
+            return new ResourceLocation("mekaweapons", "textures/gui/radial/" + nomeFile); 
+        }
     }
 }

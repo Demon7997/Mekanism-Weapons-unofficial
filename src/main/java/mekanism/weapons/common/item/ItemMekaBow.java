@@ -1,35 +1,18 @@
 package mekanism.weapons.common.item;
 
-import mekanism.api.EnumColor;
-import mekanism.api.energy.IEnergizedItem;
-import mekanism.api.gear.IModule;
-import mekanism.client.MekKeyHandler;
-import mekanism.client.MekanismKeyHandler;
-import mekanism.common.MekanismModules;
-import mekanism.common.content.gear.IModuleContainerItem;
-import mekanism.common.content.gear.shared.ModuleEnergyUnit;
-import mekanism.common.util.ItemDataUtils;
-import mekanism.common.util.LangUtils;
-import mekanism.common.util.MekanismUtils;
-import mekanism.weapons.MekanismWeapons;
-import mekanism.weapons.MekanismWeaponsItems;
-import mekanism.weapons.MekanismWeaponsModules;
-import mekanism.weapons.config.MekanismWeaponsConfig;
-import mekanism.weapons.common.entity.EntityMekaArrow;
-import mekanism.weapons.common.module.ModuleDrawSpeedUnit;
-import mekanism.weapons.common.module.ModuleGravityDampenerUnit;
-import mekanism.weapons.common.module.ModuleWeaponAttackAmplificationUnit;
-import mekanism.weapons.common.module.ModuleArrowVelocityUnit;
-import mekanism.weapons.common.module.ModuleCompoundArrowUnit;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.init.SoundEvents;
+import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.EnumAction;
 import net.minecraft.item.EnumRarity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemSword;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.stats.StatList;
 import net.minecraft.util.ActionResult;
@@ -42,22 +25,43 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import mekanism.common.item.interfaces.IModeItem;
-import mekanism.common.lib.radial.IGenericRadialModeItem;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.item.ItemBow;
 import mekanism.api.radial.RadialData;
 import mekanism.api.radial.mode.IRadialMode;
 import mekanism.api.radial.mode.NestedRadialMode;
+import mekanism.api.EnumColor;
+import mekanism.api.energy.IEnergizedItem;
+import mekanism.api.gear.IModule;
+import mekanism.client.MekKeyHandler;
+import mekanism.client.MekanismKeyHandler;
+import mekanism.common.item.interfaces.IModeItem;
+import mekanism.common.lib.radial.IGenericRadialModeItem;
 import mekanism.common.lib.radial.data.NestingRadialData;
 import mekanism.common.content.gear.Module;
-import net.minecraft.util.text.ITextComponent;
+import mekanism.common.MekanismModules;
+import mekanism.common.content.gear.IModuleContainerItem;
+import mekanism.common.content.gear.shared.ModuleEnergyUnit;
+import mekanism.common.util.ItemDataUtils;
+import mekanism.common.util.LangUtils;
+import mekanism.common.util.MekanismUtils;
+import mekanism.weapons.MekanismWeapons;
+import mekanism.weapons.MekanismWeaponsItems;
+import mekanism.weapons.MekanismWeaponsModules;
+import mekanism.weapons.config.MekanismWeaponsConfig;
+import mekanism.weapons.common.entity.EntityMekaArrow;
+import mekanism.weapons.common.module.ModuleDrawSpeedUnit;
+import mekanism.weapons.common.module.ModuleWeaponAttackAmplificationUnit;
+import mekanism.weapons.common.module.ModuleArrowVelocityUnit;
+import mekanism.weapons.common.module.ModuleCompoundArrowUnit;
 import org.jetbrains.annotations.NotNull;
-import net.minecraft.item.ItemBow;
+import com.google.common.collect.Multimap;
+
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-
 
 public class ItemMekaBow extends ItemBow implements IEnergizedItem, IModuleContainerItem, IModeItem, IGenericRadialModeItem {
 
@@ -89,12 +93,81 @@ public ItemMekaBow() {
     });
 }
 
+// --- GESTIONE RARITÀ DINAMICA ---
+    @Override
+    public EnumRarity getRarity(ItemStack stack) {
+        // Partiamo dalla rarità di base che vogliamo per l'arma
+        EnumRarity rarity = EnumRarity.EPIC;
+        
+        // Controlliamo tutti i moduli installati
+        for (IModule<?> module : getModules(stack)) {
+            // Se un modulo ha una rarità più alta di quella attuale...
+            if (module.getData().getRarity().ordinal() > rarity.ordinal()) {
+                // ...aggiorniamo la rarità a quella del modulo.
+                rarity = module.getData().getRarity();
+            }
+        }
+        return rarity;
+    }
+
+@Override
+    public String getItemStackDisplayName(ItemStack stack) {
+        // Forza il colore ROSA/VIOLA (Mekanism Epic) direttamente nel nome.
+        // Così sarà colorato ovunque, anche nella chat o nei tooltip degli altri oggetti.
+        return EnumColor.PINK + super.getItemStackDisplayName(stack);
+    }
+
+    // --- LOGICA TOOLTIP (VISUALIZZAZIONE DANNO) ---
+    @Override
+      public Multimap<String, AttributeModifier> getAttributeModifiers(EntityEquipmentSlot slot, ItemStack stack) {
+        Multimap<String, AttributeModifier> multimap = super.getAttributeModifiers(slot, stack);
+        
+        if (slot == EntityEquipmentSlot.MAINHAND) {
+            multimap.clear(); 
+
+            // Default: Danno "Scarico" (20 + 1 = 21)
+            double damage = 20.0D; 
+            
+            IModule<ModuleWeaponAttackAmplificationUnit> damageModule = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
+            
+            // C'è energia sufficiente?
+            boolean hasEnergy = getEnergy(stack) >= MekanismWeaponsConfig.mekaBowEnergyUsage;
+
+            if (damageModule != null && damageModule.isEnabled()) {
+                double mult = damageModule.getCustomInstance().getDamageMode().getMultiplier();
+                
+                if (mult == 0) {
+                    // CASO 1: Modulo OFF -> Danno 1 (0 + 1 base)
+                    damage = 0.0D;
+                } else if (hasEnergy) {
+                    // CASO 2: Modulo ON + Energia -> Danno Pieno (50 * mult)
+                    damage = MekanismWeaponsConfig.mekaBowBaseDamage * mult;
+                } else {
+                    // CASO 3: Modulo ON + No Energia -> Danno Scarico (21)
+                    damage = 20.0D;
+                }
+            } else {
+                // Senza modulo
+                if (hasEnergy) {
+                    // CASO 4: No Modulo + Energia -> Danno Base (50)
+                    damage = MekanismWeaponsConfig.mekaBowBaseDamage;
+                } else {
+                    // CASO 5: No Modulo + No Energia -> Danno Scarico (21)
+                    damage = 20.0D;
+                }
+            }
+            
+            multimap.put(SharedMonsterAttributes.ATTACK_DAMAGE.getName(), new AttributeModifier(ItemSword.ATTACK_DAMAGE_MODIFIER, "Weapon modifier", damage, 0));
+        }
+        
+        return multimap;
+    }
+
     @Override
     public EnumAction getItemUseAction(ItemStack stack) { return EnumAction.BOW; }
 
     @Override
     public int getMaxItemUseDuration(ItemStack stack) { return 72000; }
-
 
 @Nonnull
 @Override
@@ -223,19 +296,20 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
         if (!(entityLiving instanceof EntityPlayer)) return;
         EntityPlayer player = (EntityPlayer) entityLiving;
 
-        // 1. Calcolo della carica
         int actualCharge = this.getMaxItemUseDuration(stack) - timeLeft;
         float multiplier = getDrawSpeedMultiplier(stack);
         int effectiveCharge = (int) (actualCharge * multiplier);
         
-        float velocity = ItemBow.getArrowVelocity(effectiveCharge); // 0.0F a 1.0F
+        float velocity = ItemBow.getArrowVelocity(effectiveCharge);
         if ((double)velocity < 0.1D) return;
 
-        // 2. Recupero Moduli Nuovi
+        // Recupero Moduli
         IModule<ModuleArrowVelocityUnit> velocityModule = getModule(stack, MekanismWeaponsModules.ARROW_VELOCITY_UNIT);
         IModule<ModuleCompoundArrowUnit> compoundModule = getModule(stack, MekanismWeaponsModules.COMPOUND_ARROW_UNIT);
+        
+        // --- 1. CONTROLLO GRAVITÀ ---
+        boolean gravityDampener = isModuleEnabled(stack, MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT);
 
-        // 3. Calcolo parametro Velocità e Numero Frecce
         float velocityMult = 1.0F;
         if (velocityModule != null && velocityModule.isEnabled()) {
             velocityMult = velocityModule.getCustomInstance().getVelocityMultiplier(velocityModule);
@@ -246,111 +320,81 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
             arrowCount = compoundModule.getCustomInstance().getArrowCount();
         }
 
-        // 4. Verifica Munizioni
         boolean useEnergyArrows = isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
         ItemStack ammoStack = findAmmo(player);
 
-        // Se non usa frecce energetiche e non ha munizioni, stop (a meno che non sia in creativa)
         if (!useEnergyArrows && !player.capabilities.isCreativeMode && ammoStack.isEmpty()) return;
 
         if (!worldIn.isRemote) {
-            // 5. Calcolo Energia Totale
             double totalEnergyNeeded = MekanismWeaponsConfig.mekaBowEnergyUsage;
             
-            // Costo: Attack Amplification
+            // Calcolo Consumi
             IModule<ModuleWeaponAttackAmplificationUnit> damageModule = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
             if (damageModule != null && damageModule.isEnabled()) {
                 totalEnergyNeeded += MekanismWeaponsConfig.attackAmplificationEnergyUsage * damageModule.getInstalledCount();
             }
-            
-            // Costo: Auto-Fire
-            if (isModuleEnabled(stack, MekanismWeaponsModules.AUTO_FIRE_UNIT)) {
-                totalEnergyNeeded += MekanismWeaponsConfig.mekaBowAutofireEnergyUsage;
-            }
-            
-            // Costo: Draw Speed
+            if (isModuleEnabled(stack, MekanismWeaponsModules.AUTO_FIRE_UNIT)) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowAutofireEnergyUsage;
             IModule<ModuleDrawSpeedUnit> drawSpeedModule = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
-            if (drawSpeedModule != null && drawSpeedModule.isEnabled()) {
-                totalEnergyNeeded += MekanismWeaponsConfig.mekaBowDrawSpeedUsage * drawSpeedModule.getInstalledCount();
-            }
+            if (drawSpeedModule != null && drawSpeedModule.isEnabled()) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowDrawSpeedUsage * drawSpeedModule.getInstalledCount();
             
-            // Costo: Gravity Dampener
-            if (isModuleEnabled(stack, MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT)) {
-                totalEnergyNeeded += MekanismWeaponsConfig.mekaBowGravityDampenerUsage;
-            }
+            // --- 2. CONSUMO ENERGIA GRAVITÀ ---
+            if (gravityDampener) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowGravityDampenerUsage;
             
-            // Costo: Energy Arrows (Base)
             if (useEnergyArrows) {
                 totalEnergyNeeded += MekanismWeaponsConfig.mekaBowEnergyArrowUsage;
-                // Se spariamo frecce multiple di energia, moltiplichiamo il costo base
-                if (arrowCount > 1) {
-                    totalEnergyNeeded += (MekanismWeaponsConfig.mekaBowEnergyArrowUsage * (arrowCount - 1));
-                }
+                if (arrowCount > 1) totalEnergyNeeded += (MekanismWeaponsConfig.mekaBowEnergyArrowUsage * (arrowCount - 1));
             }
+            if (velocityModule != null) totalEnergyNeeded += velocityModule.getCustomInstance().getEnergyCost(velocityModule);
+            if (compoundModule != null) totalEnergyNeeded += compoundModule.getCustomInstance().getEnergyCost();
 
-            // Costo: Velocity Module
-            if (velocityModule != null) {
-                totalEnergyNeeded += velocityModule.getCustomInstance().getEnergyCost(velocityModule);
-            }
-
-            // Costo: Compound Arrow Module
-            if (compoundModule != null) {
-                totalEnergyNeeded += compoundModule.getCustomInstance().getEnergyCost();
-            }
-
-            // Verifica Disponibilità Energia
             if (getEnergy(stack) < totalEnergyNeeded && !player.capabilities.isCreativeMode) return;
             if (!player.capabilities.isCreativeMode) setEnergy(stack, getEnergy(stack) - totalEnergyNeeded);
 
-            // 6. Ciclo di Sparo (Per frecce multiple)
             for (int i = 0; i < arrowCount; i++) {
-                // Controllo munizioni dentro il loop (se usiamo frecce fisiche, ne servono N)
                 if (!useEnergyArrows && !player.capabilities.isCreativeMode) {
-                    ammoStack = findAmmo(player); // Aggiorna lo stack
-                    if (ammoStack.isEmpty()) break; // Finito le frecce
+                    ammoStack = findAmmo(player);
+                    if (ammoStack.isEmpty()) break;
                 }
 
                 EntityMekaArrow arrow = new EntityMekaArrow(worldIn, player);
                 
-                // Danno
-                float finalDamage = MekanismWeaponsConfig.mekaBowBaseDamage;
+                // --- 3. APPLICAZIONE GRAVITÀ ---
+                if (gravityDampener) {
+                    // Questo comando dice alla freccia di ignorare la fisica della caduta
+                    arrow.setNoGravity(true);
+                }
+
+                // Danno (con fix OFF = 1)
+                float finalDamage = (float)MekanismWeaponsConfig.mekaBowBaseDamage;
                 if (damageModule != null && damageModule.isEnabled()) {
-                    finalDamage *= damageModule.getCustomInstance().getDamageBonus(damageModule);
+                    float modMult = damageModule.getCustomInstance().getDamageBonus(damageModule);
+                    if (modMult == 0) finalDamage = 1.0F;
+                    else finalDamage *= modMult;
                 }
                 arrow.setDamage(finalDamage);
 
-                // Velocità e Mira
-                // velocity * 3.0F è vanilla. Moltiplichiamo per velocityMult.
-                // 1.0F è l'imprecisione (divergenza). Se spari tante frecce, aumentarla leggermente (es. 2.0F o 3.0F) le fa sparpagliare meglio.
                 float spread = (arrowCount > 1) ? 3.0F : 1.0F; 
                 arrow.shoot(player, player.rotationPitch, player.rotationYaw, 0.0F, velocity * 3.0F * velocityMult, spread);
 
-                if (velocity >= 1.0F) {
-                    arrow.setIsCritical(true);
-                }
+                if (velocity >= 1.0F) arrow.setIsCritical(true);
 
-                // Gestione consumo oggetto freccia
                 if (useEnergyArrows || player.capabilities.isCreativeMode) {
                     arrow.pickupStatus = EntityArrow.PickupStatus.CREATIVE_ONLY;
                 } else {
                     ammoStack.shrink(1);
-                    if (ammoStack.isEmpty()) {
-                        player.inventory.deleteStack(ammoStack);
-                    }
+                    if (ammoStack.isEmpty()) player.inventory.deleteStack(ammoStack);
                 }
-
                 worldIn.spawnEntity(arrow);
             }
         }
 
-        // Suono
-        // Modifichiamo il pitch in base alla velocità per dare un feedback sonoro (più veloce = suono più acuto)
         float pitch = 1.0F / (itemRand.nextFloat() * 0.4F + 1.2F) + velocity * 0.5F;
-        if (velocityMult > 1.0F) pitch += (velocityMult * 0.1F); // Leggermente più acuto se veloce
+        if (velocityMult > 1.0F) pitch += (velocityMult * 0.1F);
         
         worldIn.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_ARROW_SHOOT, SoundCategory.PLAYERS, 1.0F, pitch);
         player.addStat(StatList.getObjectUseStats(this));
     }
+
     // Metodo per trovare le munizioni nell'inventario del giocatore
     @Override
     protected ItemStack findAmmo(EntityPlayer player) {
@@ -454,5 +498,15 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
     }
     
     return multiplier;
-}
+   }
+
+   @Override
+    public boolean isEnchantable(ItemStack stack) {
+        return MekanismWeaponsConfig.mekaBowEnchantments;
+    }
+
+    @Override
+    public boolean isBookEnchantable(ItemStack stack, ItemStack book) {
+        return isEnchantable(stack);
+    }
 }

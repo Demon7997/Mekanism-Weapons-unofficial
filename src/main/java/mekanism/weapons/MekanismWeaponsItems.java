@@ -13,21 +13,26 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry.ObjectHolder;
-import net.minecraft.client.renderer.block.model.ModelBakery;
 
 public class MekanismWeaponsItems {
 
     // --- Oggetti (verranno riempiti da Forge) ---
     @ObjectHolder(MekanismWeapons.MODID + ":meka_tana")
     public static final ItemMekaTana meka_tana = null;
+    
     @ObjectHolder(MekanismWeapons.MODID + ":meka_bow")
     public static final ItemMekaBow meka_bow = null;
+    
     @ObjectHolder(MekanismWeapons.MODID + ":katana_blade")
     public static final Item katana_blade = null;
+    
     @ObjectHolder(MekanismWeapons.MODID + ":bow_limb")
     public static final Item bow_limb = null;
+    
     @ObjectHolder(MekanismWeapons.MODID + ":bow_riser")
     public static final Item bow_riser = null;
+    
+    // MODULI
     @ObjectHolder(MekanismWeapons.MODID + ":module_attackamplification_unit")
     public static final ItemModule module_attackamplification_unit = null;
     @ObjectHolder(MekanismWeapons.MODID + ":module_arrowvelocity_unit")
@@ -42,6 +47,8 @@ public class MekanismWeaponsItems {
     public static final ItemModule module_arrowenergy_unit = null;
     @ObjectHolder(MekanismWeapons.MODID + ":module_gravitydampener_unit")
     public static final ItemModule module_gravitydampener_unit = null;
+    
+    // FRECCIA (Nota l'underscore: meka_arrow)
     @ObjectHolder(MekanismWeapons.MODID + ":meka_arrow")
     public static final Item meka_arrow = null;
 
@@ -58,7 +65,11 @@ public class MekanismWeaponsItems {
         registry.register(init(new Item(), "katana_blade"));
         registry.register(init(new Item(), "bow_limb"));
         registry.register(init(new Item(), "bow_riser"));
+        
+        // Registrazione Item Freccia
         registry.register(init(new Item(), "meka_arrow"));
+        
+        // Moduli
         registry.register(init(new ItemModule(MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT), "module_attackamplification_unit"));
         registry.register(init(new ItemModule(MekanismWeaponsModules.ARROW_VELOCITY_UNIT), "module_arrowvelocity_unit"));
         registry.register(init(new ItemModule(MekanismWeaponsModules.AUTO_FIRE_UNIT), "module_autofire_unit"));
@@ -83,25 +94,16 @@ public class MekanismWeaponsItems {
         registerModel(module_arrowenergy_unit);
         registerModel(module_gravitydampener_unit);
         
-        // #############################################################
-        // #### ECCO DOVE VA IL TUO CODICE ####
-        // #############################################################
-        // CANCELLA la vecchia riga "registerModel(meka_arrow);"
-        // e INCOLLA questo al suo posto.
-        if (meka_arrow != null) {
-            ModelLoader.setCustomMeshDefinition(meka_arrow, stack -> 
-                new ModelResourceLocation(meka_arrow.getRegistryName(), "inventory"));
-            ModelBakery.registerItemVariants(meka_arrow, meka_arrow.getRegistryName());
-        }
+        // Registrazione Modello Freccia (Usa il metodo standard, è più sicuro)
+        registerModel(meka_arrow);
     }
 
-    // NUOVO CODICE (CORRETTO)
-private static <T extends Item> T init(T item, String name) {
-    item.setRegistryName(new ResourceLocation(MekanismWeapons.MODID, name));
-    item.setTranslationKey(MekanismWeapons.MODID + "." + name); // <-- CORRETTO
-    item.setCreativeTab(tabMekanismWeapons);
-    return item;
-}
+    private static <T extends Item> T init(T item, String name) {
+        item.setRegistryName(new ResourceLocation(MekanismWeapons.MODID, name));
+        item.setTranslationKey(MekanismWeapons.MODID + "." + name);
+        item.setCreativeTab(tabMekanismWeapons);
+        return item;
+    }
 
     @SideOnly(Side.CLIENT)
     private static void registerModel(Item item) {
