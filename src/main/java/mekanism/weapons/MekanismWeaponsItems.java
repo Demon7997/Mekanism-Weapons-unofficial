@@ -1,6 +1,7 @@
 package mekanism.weapons;
 
 import mekanism.common.item.ItemModule;
+import mekanism.weapons.common.item.ItemMekaArrow;
 import mekanism.weapons.common.item.ItemMekaBow;
 import mekanism.weapons.common.item.ItemMekaTana;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -67,7 +68,7 @@ public class MekanismWeaponsItems {
         registry.register(init(new Item(), "bow_riser"));
         
         // Registrazione Item Freccia
-        registry.register(init(new Item(), "meka_arrow"));
+        registry.register(init(new ItemMekaArrow(), "meka_arrow"));
         
         // Moduli
         registry.register(init(new ItemModule(MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT), "module_attackamplification_unit"));

@@ -44,6 +44,7 @@ import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.fml.relauncher.Side;
@@ -281,11 +282,65 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
         return null;
     }
     
-    @Override
-    public <M extends IRadialMode> void setMode(ItemStack stack, EntityPlayer player, RadialData<M> radialData, M mode) {
-        for (Module<?> module : getModules(stack)) {
-            if (module.handlesRadialModeChange() && module.setMode(player, stack, radialData, mode)) {
+   @Override
+public <M extends IRadialMode> void setMode(ItemStack stack, EntityPlayer player, RadialData<M> radialData, M mode) {
+    // QUESTO DEVE APPARIRE IN CHAT APPENA CLICCHI
+    if (!player.world.isRemote) {
+        player.sendMessage(new TextComponentString("DEBUG SPADA: Ricevuto clic per " + radialData.getIdentifier().toString()));
+    }
+
+    for (mekanism.common.content.gear.Module<?> module : getModules(stack)) {
+        if (module.getCustomInstance() instanceof ModuleWeaponAttackAmplificationUnit) {
+            ModuleWeaponAttackAmplificationUnit custom = (ModuleWeaponAttackAmplificationUnit) module.getCustomInstance();
+            if (custom.setModeCustom(player, stack, radialData, (IRadialMode) mode)) {
                 return;
+            }
+        }
+    }
+}
+
+    @Override
+    public void getSubItems(net.minecraft.creativetab.CreativeTabs tabs, net.minecraft.util.NonNullList<ItemStack> list) {
+        if (!isInCreativeTab(tabs)) return;
+
+        // 1. Tana Base (Vuota e Scarica)
+        list.add(new ItemStack(this));
+
+        // 2. Tana Solo Carica (Senza moduli)
+        ItemStack chargedOnly = new ItemStack(this);
+        setEnergy(chargedOnly, getMaxEnergy(chargedOnly));
+        list.add(chargedOnly);
+
+        // 3. Tana Full Modded (Moduli + Energia)
+        ItemStack fullStack = new ItemStack(this);
+        setAllModule(fullStack); 
+        setEnergy(fullStack, getMaxEnergy(fullStack));
+        list.add(fullStack);
+    }
+
+    @Override
+    public void setAllModule(ItemStack stack) {
+        // Array dei moduli compatibili con la MekaTana
+        mekanism.api.gear.ModuleData<?>[] modules = {
+            MekanismModules.ENERGY_UNIT,               // Capacità energetica
+            MekanismModules.TELEPORTATION_UNIT,        // Teletrasporto (Tasto Destro)
+            MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT // Danno aumentato
+        };
+
+        for (mekanism.api.gear.ModuleData<?> type : modules) {
+            // Aggiungiamo il modulo all'item
+            addModule(stack, type);
+        
+            // Recuperiamo l'istanza per configurarla al massimo
+            mekanism.api.gear.IModule<?> iModule = getModule(stack, type);
+            if (iModule instanceof mekanism.common.content.gear.Module) {
+                mekanism.common.content.gear.Module instance = (mekanism.common.content.gear.Module) iModule;
+            
+                // Impostiamo il numero massimo di stack (es. 4 unità di danno)
+                instance.setInstalledCount(type.getMaxStackSize());
+            
+                // Salviamo lo stato attivando il modulo (Lambda vuota come richiesto dalla tua versione)
+                instance.save(() -> {}); 
             }
         }
     }

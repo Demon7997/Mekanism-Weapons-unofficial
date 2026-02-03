@@ -22,7 +22,9 @@ public class MekanismWeapons {
         MekanismWeaponsConfig.load(event);
         MekanismWeaponsEntities.registerEntities();
         MekanismWeaponsModules.registerModules();
-        proxy.preInit();
+    
+        // Passa l'evento al proxy, altrimenti il compilatore dà errore
+        proxy.preInit(event); 
     }
 
      @Mod.EventHandler

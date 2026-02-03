@@ -27,9 +27,7 @@ import java.util.function.Consumer;
 
 public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<ModuleWeaponAttackAmplificationUnit> {
 
-    // ID Statico per sicurezza (allineato alla cartella asset)
-    public static final ResourceLocation RADIAL_ID = new ResourceLocation("mekaweapons", "damage_amplification");
-
+    public static final ResourceLocation RADIAL_ID = new ResourceLocation("mekaweapons", "attack_amplify");
     private IModuleConfigItem<DamageMode> damageMode;
 
     @Override
@@ -120,18 +118,30 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
         return null;
     }
 
-    @Override
-    public <MODE extends IRadialMode> boolean setMode(IModule<ModuleWeaponAttackAmplificationUnit> module, EntityPlayer player, ItemStack stack, RadialData<MODE> radialData, MODE mode) {
-        if (mode instanceof DamageMode) {
-            damageMode.set((DamageMode) mode);
-            if (!player.world.isRemote) {
-                player.inventory.markDirty();
-            }
-            return true;
-        }
-        return false;
+
+    public boolean handlesRadialModeChange() {
+        // Questo dice a Mekanism che questo modulo ACCETTA input dal menu radiale
+        return true; 
     }
 
+    public boolean setModeCustom(EntityPlayer player, ItemStack stack, RadialData<?> radialData, IRadialMode mode) {
+    if (mode instanceof DamageMode) {
+        this.damageMode.set((DamageMode) mode);
+        
+        if (!player.world.isRemote) {
+            // Feedback in chat per essere sicuri al 100%
+            player.sendMessage(new net.minecraft.util.text.TextComponentString(
+                mekanism.api.EnumColor.PURPLE + "MekaTana: " + 
+                mekanism.api.EnumColor.GREY + "Danno impostato a " + 
+                ((DamageMode)mode).getColor() + ((DamageMode)mode).label
+            ));
+            player.inventory.markDirty();
+        }
+        return true;
+    }
+    return false;
+}
+    
     public float getDamageBonus(IModule<ModuleWeaponAttackAmplificationUnit> module) {
         if (!module.isEnabled()) return 1F;
         return damageMode.get().getMultiplier();

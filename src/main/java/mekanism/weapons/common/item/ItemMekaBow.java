@@ -2,6 +2,7 @@ package mekanism.weapons.common.item;
 
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
@@ -18,6 +19,7 @@ import net.minecraft.stats.StatList;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.MathHelper;
@@ -56,7 +58,6 @@ import mekanism.weapons.common.module.ModuleArrowVelocityUnit;
 import mekanism.weapons.common.module.ModuleCompoundArrowUnit;
 import org.jetbrains.annotations.NotNull;
 import com.google.common.collect.Multimap;
-
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -508,5 +509,60 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
     @Override
     public boolean isBookEnchantable(ItemStack stack, ItemStack book) {
         return isEnchantable(stack);
+    }
+
+    @Override
+    public void getSubItems(@Nonnull CreativeTabs tabs, @Nonnull NonNullList<ItemStack> list) {
+        if (!isInCreativeTab(tabs)) return;
+
+        // 1. Arco scarico e senza moduli (Base)
+        list.add(new ItemStack(this));
+
+        // 2. Arco SOLO CARICO (Senza moduli)
+        ItemStack chargedOnly = new ItemStack(this);
+        // Impostiamo l'energia al massimo della capacità base (senza moduli energy)
+        setEnergy(chargedOnly, getMaxEnergy(chargedOnly));
+        list.add(chargedOnly);
+
+        // 3. Arco FULL (Moduli al massimo + Energia al massimo)
+        ItemStack fullStack = new ItemStack(this);
+        setAllModule(fullStack); // Questo aggiunge i moduli
+        // Ricarichiamo l'energia (getMaxEnergy ora restituirà il valore potenziato dai moduli)
+        setEnergy(fullStack, getMaxEnergy(fullStack));
+        list.add(fullStack);
+    }
+
+    @Override
+    public void setAllModule(ItemStack stack) {
+        mekanism.api.gear.ModuleData<?>[] modules = {
+            MekanismModules.ENERGY_UNIT,
+            MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT,
+            MekanismWeaponsModules.ARROW_VELOCITY_UNIT,
+            MekanismWeaponsModules.AUTO_FIRE_UNIT,
+            MekanismWeaponsModules.DRAW_SPEED_UNIT,
+            MekanismWeaponsModules.COMPOUND_ARROW_UNIT,
+            MekanismWeaponsModules.ENERGY_ARROWS_UNIT,
+            MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT
+        };
+
+        for (mekanism.api.gear.ModuleData<?> type : modules) {
+            // 1. Aggiungiamo il modulo con il metodo che funziona sicuramente
+            addModule(stack, type);
+        
+            // 2. Recuperiamo l'istanza come IModule (che abbiamo visto avere getCustomInstance o simili)
+            mekanism.api.gear.IModule<?> iModule = getModule(stack, type);
+        
+            if (iModule instanceof mekanism.common.content.gear.Module) {
+                // Facciamo il cast alla classe concreta per i setter
+                mekanism.common.content.gear.Module instance = (mekanism.common.content.gear.Module) iModule;
+            
+                // Impostiamo il numero massimo
+                instance.setInstalledCount(type.getMaxStackSize());
+            
+                // Invece di setEnabled, usiamo la gestione diretta del NBT di Mekanism
+                // Il metodo save() con un Runnable vuoto forza la scrittura dei dati correnti (incluso enabled:true)
+                instance.save(() -> {}); 
+            }
+        }
     }
 }
