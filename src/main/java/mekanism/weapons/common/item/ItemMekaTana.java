@@ -58,41 +58,49 @@ import java.util.List;
 public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem, IModeItem, IGenericRadialModeItem {
 
     public ItemMekaTana() {
-        // Chiama il costruttore di ItemEnergized con la capacità di base dalla config
         super(MekanismWeaponsConfig.mekaTanaBaseEnergyCapacity);
         setCreativeTab(MekanismWeaponsItems.tabMekanismWeapons);
         setMaxStackSize(1);
         setRarity(EnumRarity.EPIC);
     }
 
+@Override
+    @SideOnly(Side.CLIENT)
+    public boolean hasEffect(ItemStack stack) {
+        java.util.Map<net.minecraft.enchantment.Enchantment, Integer> enchants = net.minecraft.enchantment.EnchantmentHelper.getEnchantments(stack);
+
+        if (enchants.isEmpty()) {
+            return false;
+        }
+
+        for (net.minecraft.enchantment.Enchantment enchantment : enchants.keySet()) {
+            if (enchantment != net.minecraft.init.Enchantments.LOOTING && 
+                enchantment != net.minecraft.init.Enchantments.SWEEPING) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @Override
     public EnumRarity getRarity(ItemStack stack) {
-    // Partiamo dalla rarità di base che vogliamo per l'arma
     EnumRarity rarity = EnumRarity.EPIC;
     
-    // Controlliamo tutti i moduli installati
     for (IModule<?> module : getModules(stack)) {
-        // Se un modulo ha una rarità più alta di quella attuale...
         if (module.getData().getRarity().ordinal() > rarity.ordinal()) {
-            // ...aggiorniamo la rarità a quella del modulo.
             rarity = module.getData().getRarity();
         }
     }
     
-    // Restituiamo la rarità più alta trovata (o quella di base se non ci sono moduli più rari).
     return rarity;
-}
+    }
 
-    // Traduce la logica IEnergizedItem nel sistema standard di Forge (Capabilities)
-    // Questo è il pezzo fondamentale che fa comunicare la Tana con il Cubo di Energia
     @Override
     public ICapabilityProvider initCapabilities(ItemStack stack, @Nullable NBTTagCompound nbt) {
-    // Chiama il metodo initCapabilities della classe genitore (ItemEnergized),
-    // che sa già come gestire l'energia correttamente per questa versione di Mekanism.
     return super.initCapabilities(stack, nbt);
     }
 
-    // Metodi energetici che danno priorità ai moduli
     @Override
     public double getMaxEnergy(ItemStack stack) {
         IModule<ModuleEnergyUnit> module = getModule(stack, MekanismModules.ENERGY_UNIT);
@@ -102,47 +110,37 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
     @Override
     public double getMaxTransfer(ItemStack stack) {
         IModule<ModuleEnergyUnit> module = getModule(stack, MekanismModules.ENERGY_UNIT);
-        // Se c'è il modulo usa quello, altrimenti usa il rate base della config
         return module != null ? module.getCustomInstance().getChargeRate(module) : MekanismWeaponsConfig.mekaTanaBaseChargeRate;
     }
 
-    // --- Logica di Combattimento (Tuo codice originale, corretto) ---
     @Override
     public Multimap<String, AttributeModifier> getAttributeModifiers(EntityEquipmentSlot slot, ItemStack stack) {
     Multimap<String, AttributeModifier> multimap = super.getAttributeModifiers(slot, stack);
-    multimap.clear(); // Partiamo da zero
+    multimap.clear();
 
     if (slot == EntityEquipmentSlot.MAINHAND) {
         double damage;
         double energyCost = MekanismWeaponsConfig.mekaTanaEnergyUsage;
-        double baseDamageWithEnergy = MekanismWeaponsConfig.mekaTanaBaseDamage; // Questo è 51
-        double baseDamageWithoutEnergy = 20D; // Questo è 21
+        double baseDamageWithEnergy = MekanismWeaponsConfig.mekaTanaBaseDamage;
+        double baseDamageWithoutEnergy = 20D;
 
         IModule<ModuleWeaponAttackAmplificationUnit> damageModule = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
         
-        // Controlliamo se il modulo è installato, attivo E NON su OFF
         if (damageModule != null && damageModule.isEnabled()) {
             ModuleWeaponAttackAmplificationUnit customInstance = damageModule.getCustomInstance();
             ModuleWeaponAttackAmplificationUnit.DamageMode mode = customInstance.getDamageMode();
 
-            // REGOLA 1: Se il modulo è su OFF, il danno è 1.
             if (mode == ModuleWeaponAttackAmplificationUnit.DamageMode.OFF) {
                 damage = 0;
             } else {
-                // Se il modulo è su LOW o superiore...
                 energyCost += customInstance.getEnergyCost(damageModule);
-                // Controlliamo se abbiamo abbastanza energia
                 if (getEnergy(stack) >= energyCost) {
-                    // CON ENERGIA: il danno è quello base (51) moltiplicato per il bonus
                     damage = baseDamageWithEnergy * mode.getMultiplier();
                 } else {
-                    // SENZA ENERGIA: il danno è 21
                     damage = baseDamageWithoutEnergy;
                 }
             }
         } else {
-            // Se non c'è nessun modulo di danno...
-            // Controlliamo l'energia per decidere tra 51 e 21
             if (getEnergy(stack) >= energyCost) {
                 damage = baseDamageWithEnergy;
             } else {
@@ -159,25 +157,52 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
     
     @Override
     public boolean hitEntity(ItemStack stack, EntityLivingBase target, EntityLivingBase attacker) {
+        IModule<?> sweepingModule = getModule(stack, MekanismWeaponsModules.SWEEPING_UNIT);
+        boolean hasSweepingUnit = sweepingModule != null && sweepingModule.isEnabled();
         double energyCost = MekanismWeaponsConfig.mekaTanaEnergyUsage;
-        IModule<ModuleWeaponAttackAmplificationUnit> module = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
+    
+        IModule<ModuleWeaponAttackAmplificationUnit> amp = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
+        if (amp != null && amp.isEnabled()) {
+            energyCost += amp.getCustomInstance().getEnergyCost(amp);
+        }
+
+        if (hasSweepingUnit) {
+            energyCost += MekanismWeaponsConfig.mekaTanaSweepingEnergyUsage;
+        }
+
+        if (attacker instanceof EntityPlayer) {
+            EntityPlayer player = (EntityPlayer) attacker;
         
-        if (module != null && module.isEnabled()) {
-            energyCost += module.getCustomInstance().getEnergyCost(module);
-        }
+            if (player.capabilities.isCreativeMode || getEnergy(stack) >= energyCost) {
+            
+                if (!player.capabilities.isCreativeMode) {
+                    setEnergy(stack, getEnergy(stack) - energyCost);
+                }
 
-        // Se chi attacca è un player in Creative, NON consumare energia
-        if (attacker instanceof EntityPlayer && ((EntityPlayer) attacker).capabilities.isCreativeMode) {
-            return true;
-        }
+                if (hasSweepingUnit && player.onGround && !player.isSprinting()) {
+                
+                    float damageArea = (float)(MekanismWeaponsConfig.mekaTanaBaseDamage * 0.5) + 1.0F;
 
-        if (getEnergy(stack) >= energyCost) {
-            setEnergy(stack, getEnergy(stack) - energyCost);
+                    for (EntityLivingBase nearbyEntity : player.world.getEntitiesWithinAABB(EntityLivingBase.class, target.getEntityBoundingBox().grow(1.0D, 0.25D, 1.0D))) {
+                        if (nearbyEntity != player && nearbyEntity != target && !player.isOnSameTeam(nearbyEntity)) {
+                        
+                            nearbyEntity.knockBack(player, 0.4F, 
+                                (double)net.minecraft.util.math.MathHelper.sin(player.rotationYaw * 0.017453292F), 
+                                (double)(-net.minecraft.util.math.MathHelper.cos(player.rotationYaw * 0.017453292F)));
+                        
+                            nearbyEntity.attackEntityFrom(net.minecraft.util.DamageSource.causePlayerDamage(player), damageArea);
+                        }
+                    }
+
+                    player.spawnSweepParticles();
+                    player.world.playSound(null, player.posX, player.posY, player.posZ, 
+                        net.minecraft.init.SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, player.getSoundCategory(), 1.0F, 1.0F);
+                }
+            }
         }
         return true;
     }
 
-    // --- Logica del Teletrasporto (Tuo codice originale) ---
     @NotNull
     @Override
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, @NotNull EnumHand hand) {
@@ -190,7 +215,6 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
                 double distance = player.getDistanceSq(pos.getBlockPos());
                 double energyCost = MekanismWeaponsConfig.mekaTanaTeleportEnergyUsage * (distance / 10D);
                 
-                // Se sei in creative o hai abbastanza energia
                 if (player.capabilities.isCreativeMode || getEnergy(stack) >= energyCost) {
                     BlockPos blockPos = pos.getBlockPos();
                     if (world.isAirBlock(blockPos.up()) && world.isAirBlock(blockPos.up(2))) {
@@ -199,7 +223,6 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
                             player.setPositionAndUpdate(blockPos.getX() + 0.5, blockPos.getY() + 1.5, blockPos.getZ() + 0.5);
                             player.fallDistance = 0.0F;
                             
-                            // Consuma energia SOLO se NON sei in creative
                             if (!player.capabilities.isCreativeMode) {
                                 setEnergy(stack, getEnergy(stack) - energyCost);
                             }
@@ -214,7 +237,6 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
         return new ActionResult<>(EnumActionResult.PASS, stack);
     }
     
-    // --- Metodi di Visualizzazione e Tooltip (ereditati o corretti) ---
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
@@ -283,35 +305,31 @@ public class ItemMekaTana extends ItemEnergized implements IModuleContainerItem,
     }
     
    @Override
-public <M extends IRadialMode> void setMode(ItemStack stack, EntityPlayer player, RadialData<M> radialData, M mode) {
-    // QUESTO DEVE APPARIRE IN CHAT APPENA CLICCHI
-    if (!player.world.isRemote) {
-        player.sendMessage(new TextComponentString("DEBUG SPADA: Ricevuto clic per " + radialData.getIdentifier().toString()));
-    }
+    public <M extends IRadialMode> void setMode(ItemStack stack, EntityPlayer player, RadialData<M> radialData, M mode) {
+        if (!player.world.isRemote) {
+            player.sendMessage(new TextComponentString("DEBUG SPADA: Ricevuto clic per " + radialData.getIdentifier().toString()));
+        }
 
-    for (mekanism.common.content.gear.Module<?> module : getModules(stack)) {
-        if (module.getCustomInstance() instanceof ModuleWeaponAttackAmplificationUnit) {
-            ModuleWeaponAttackAmplificationUnit custom = (ModuleWeaponAttackAmplificationUnit) module.getCustomInstance();
-            if (custom.setModeCustom(player, stack, radialData, (IRadialMode) mode)) {
-                return;
+        for (mekanism.common.content.gear.Module<?> module : getModules(stack)) {
+            if (module.getCustomInstance() instanceof ModuleWeaponAttackAmplificationUnit) {
+                ModuleWeaponAttackAmplificationUnit custom = (ModuleWeaponAttackAmplificationUnit) module.getCustomInstance();
+                if (custom.setModeCustom(player, stack, radialData, (IRadialMode) mode)) {
+                    return;
+                }
             }
         }
     }
-}
 
     @Override
     public void getSubItems(net.minecraft.creativetab.CreativeTabs tabs, net.minecraft.util.NonNullList<ItemStack> list) {
         if (!isInCreativeTab(tabs)) return;
 
-        // 1. Tana Base (Vuota e Scarica)
         list.add(new ItemStack(this));
 
-        // 2. Tana Solo Carica (Senza moduli)
         ItemStack chargedOnly = new ItemStack(this);
         setEnergy(chargedOnly, getMaxEnergy(chargedOnly));
         list.add(chargedOnly);
 
-        // 3. Tana Full Modded (Moduli + Energia)
         ItemStack fullStack = new ItemStack(this);
         setAllModule(fullStack); 
         setEnergy(fullStack, getMaxEnergy(fullStack));
@@ -320,26 +338,23 @@ public <M extends IRadialMode> void setMode(ItemStack stack, EntityPlayer player
 
     @Override
     public void setAllModule(ItemStack stack) {
-        // Array dei moduli compatibili con la MekaTana
         mekanism.api.gear.ModuleData<?>[] modules = {
-            MekanismModules.ENERGY_UNIT,               // Capacità energetica
-            MekanismModules.TELEPORTATION_UNIT,        // Teletrasporto (Tasto Destro)
-            MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT // Danno aumentato
+            MekanismModules.ENERGY_UNIT,
+            MekanismModules.TELEPORTATION_UNIT,
+            MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT,
+            MekanismWeaponsModules.LOOTING_UNIT,
+            MekanismWeaponsModules.SWEEPING_UNIT
         };
 
         for (mekanism.api.gear.ModuleData<?> type : modules) {
-            // Aggiungiamo il modulo all'item
             addModule(stack, type);
         
-            // Recuperiamo l'istanza per configurarla al massimo
             mekanism.api.gear.IModule<?> iModule = getModule(stack, type);
             if (iModule instanceof mekanism.common.content.gear.Module) {
                 mekanism.common.content.gear.Module instance = (mekanism.common.content.gear.Module) iModule;
             
-                // Impostiamo il numero massimo di stack (es. 4 unità di danno)
                 instance.setInstalledCount(type.getMaxStackSize());
             
-                // Salviamo lo stato attivando il modulo (Lambda vuota come richiesto dalla tua versione)
                 instance.save(() -> {}); 
             }
         }

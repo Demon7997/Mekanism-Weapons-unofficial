@@ -18,6 +18,8 @@ item.mekaweapons.module_compoundarrow_unit.name=Compound Arrow Unit
 item.mekaweapons.module_drawspeed_unit.name=Draw Speed Unit
 item.mekaweapons.module_arrowenergy_unit.name=Energy Arrows Unit
 item.mekaweapons.module_gravitydampener_unit.name=Gravity Dampener Unit
+item.mekaweapons.module_looting_unit.name=Looting Unit
+item.mekaweapons.module_sweeping_unit.name=Sweeping Unit
 
 # Nomi dei Moduli Installati (usa il nome di registrazione)
 module.mekanism.weapon_attack_amplification_unit=Attack Amplification
@@ -63,12 +65,9 @@ mekaweapons.hud.velocity.max=Max
 # item
 item.mekaweapons.meka_arrow.name=Meka Arrow
 
-
-# module
-
 # general
 mekaweapons.hud.damage_amplification=Damage Amplification
-
+module.mekanism.looting_unit=Looting Unit
 
 # bow
 module.autofire_unit.name=Auto-Fire
@@ -76,13 +75,12 @@ module.energy_arrows_unit.name=Energy Arrows
 module.draw_speed_unit.name=Draw Speed
 
 # Katana
-
-
-
+module.mekanism.sweeping_unit=Sweeping Unit
 
 # description 
 # General
-description.mekanism.weapon_attack_amplification_unit=Amplifies weapon's damage on players or mobs
+description.mekanism.weapon_attack_amplification_unit=Amplifies weapon's damage on players or mobs.
+description.mekanism.looting_unit=Cause mobs to drop more items and increase the chances of rare drops when using Meka-Weapons.
 
 # Meka Bow
 description.mekanism.arrow_velocity_unit=Amplifies Arrows Velocity
@@ -93,3 +91,4 @@ description.mekanism.energy_arrows_unit=Fire arrows made of pure energy. Removes
 description.mekanism.gravity_dampener_unit=Defy gravity with the power of Antimatter. Full charged shots go straight to the target
 
 # Meka Tana
+description.mekanism.sweeping_unit=Enables sweeping attacks with the Meka-Tana.

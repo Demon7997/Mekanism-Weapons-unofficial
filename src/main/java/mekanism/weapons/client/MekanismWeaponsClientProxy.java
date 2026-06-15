@@ -2,35 +2,42 @@ package mekanism.weapons.client;
 
 import mekanism.weapons.MekanismWeaponsItems;
 import mekanism.weapons.common.MekanismWeaponsCommonProxy;
-import mekanism.weapons.common.entity.EntityMekaArrow; // Assicurati che l'import sia giusto
-import mekanism.weapons.client.renderer.entity.RenderMekaArrow; // Importa il tuo renderer
+import mekanism.weapons.common.entity.EntityMekaArrow;
+import mekanism.weapons.client.renderer.entity.RenderMekaArrow;
+import mekanism.weapons.client.renderer.LayerMekaBackWeapon;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraftforge.client.event.ModelRegistryEvent;
-import net.minecraftforge.fml.client.registry.RenderingRegistry; // FONDAMENTALE
+import net.minecraftforge.fml.client.registry.RenderingRegistry;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent; // Serve questo evento
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
 @Mod.EventBusSubscriber(Side.CLIENT)
 public class MekanismWeaponsClientProxy extends MekanismWeaponsCommonProxy {
 
-    // -----------------------------------------------------------------------
-    // QUESTA E' LA PARTE CHE MANCAVA
-    // Le entità vanno registrate nel PreInit, non nel ModelRegistryEvent
-    // -----------------------------------------------------------------------
     @Override
-    public void preInit(FMLPreInitializationEvent event) { // <--- Aggiungi il parametro qui
-        super.preInit(event); // <--- Passalo anche al super
-    
-        // Registrazione renderer
+    public void preInit(FMLPreInitializationEvent event) {
+        super.preInit(event);
         RenderingRegistry.registerEntityRenderingHandler(EntityMekaArrow.class, manager -> new RenderMekaArrow(manager));
-}
+    }
 
-    // -----------------------------------------------------------------------
+    @Override
+    public void init(FMLInitializationEvent event) {
+        super.init(event);
+        registerRenderLayers();
+    }
+
+    private void registerRenderLayers() {
+        for (RenderPlayer render : Minecraft.getMinecraft().getRenderManager().getSkinMap().values()) {
+            render.addLayer(new LayerMekaBackWeapon());
+        }
+    }
 
     @SubscribeEvent
     public static void registerModels(ModelRegistryEvent event) {
-        // Questo registra solo l'item nell'inventario, non la freccia che vola
         MekanismWeaponsItems.registerModels();
     }
 }

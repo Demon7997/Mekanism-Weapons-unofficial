@@ -27,7 +27,6 @@ import java.util.function.Consumer;
 
 public class ModuleCompoundArrowUnit implements ICustomModule<ModuleCompoundArrowUnit> {
 
-    // *** MODIFICA IMPORTANTE: ID ALLINEATO ALLA CARTELLA 'mekaweapons' ***
     public static final ResourceLocation RADIAL_ID = new ResourceLocation("mekaweapons", "compound_arrow");
 
     private IModuleConfigItem<ArrowLevel> arrowLevelMode;
@@ -76,10 +75,8 @@ public class ModuleCompoundArrowUnit implements ICustomModule<ModuleCompoundArro
                 }
             };
             
-            // 1. Creiamo la stringa colorata
             String nomeColorato = EnumColor.ORANGE + LangUtils.localize(module.getData().getTranslationKey());
 
-            // 2. La passiamo dentro TextComponentString
             adder.accept(new NestedRadialMode(radialData, new TextComponentString(nomeColorato), 
                 new ResourceLocation("mekaweapons", "textures/gui/radial/damage_high.png")));
         }
@@ -156,7 +153,6 @@ public class ModuleCompoundArrowUnit implements ICustomModule<ModuleCompoundArro
             String nomeFile;
             
             if (this == OFF) {
-                // Assicurati che il file si chiami off.png
                 nomeFile = "off.png"; 
             } else {
                 switch (this) {
@@ -177,7 +173,6 @@ public class ModuleCompoundArrowUnit implements ICustomModule<ModuleCompoundArro
                 }
             }
             
-            // *** CORREZIONE QUI SOTTO: HO AGGIUNTO "textures/" ***
             return new ResourceLocation("mekaweapons", "textures/gui/radial/" + nomeFile);
         }
     }

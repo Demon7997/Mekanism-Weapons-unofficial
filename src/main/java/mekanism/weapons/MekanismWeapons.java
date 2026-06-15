@@ -23,12 +23,17 @@ public class MekanismWeapons {
         MekanismWeaponsEntities.registerEntities();
         MekanismWeaponsModules.registerModules();
     
-        // Passa l'evento al proxy, altrimenti il compilatore dà errore
         proxy.preInit(event); 
     }
 
      @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         MekanismWeaponsModules.finalizeSetup();
+
+        mekanism.weapons.common.network.MekaWeaponsPacketHandler.registerMessages();
+
+        //net.minecraftforge.fml.common.network.NetworkRegistry.INSTANCE.registerGuiHandler(this, new mekanism.weapons.common.MekaWeaponsGuiHandler());
+
+         proxy.init(event);
     }
 }

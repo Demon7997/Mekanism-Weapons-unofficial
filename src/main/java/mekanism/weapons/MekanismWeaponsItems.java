@@ -1,6 +1,7 @@
 package mekanism.weapons;
 
 import mekanism.common.item.ItemModule;
+import mekanism.weapons.common.item.ItemMagnetizer;
 import mekanism.weapons.common.item.ItemMekaArrow;
 import mekanism.weapons.common.item.ItemMekaBow;
 import mekanism.weapons.common.item.ItemMekaTana;
@@ -17,7 +18,6 @@ import net.minecraftforge.fml.common.registry.GameRegistry.ObjectHolder;
 
 public class MekanismWeaponsItems {
 
-    // --- Oggetti (verranno riempiti da Forge) ---
     @ObjectHolder(MekanismWeapons.MODID + ":meka_tana")
     public static final ItemMekaTana meka_tana = null;
     
@@ -33,7 +33,6 @@ public class MekanismWeaponsItems {
     @ObjectHolder(MekanismWeapons.MODID + ":bow_riser")
     public static final Item bow_riser = null;
     
-    // MODULI
     @ObjectHolder(MekanismWeapons.MODID + ":module_attackamplification_unit")
     public static final ItemModule module_attackamplification_unit = null;
     @ObjectHolder(MekanismWeapons.MODID + ":module_arrowvelocity_unit")
@@ -48,10 +47,16 @@ public class MekanismWeaponsItems {
     public static final ItemModule module_arrowenergy_unit = null;
     @ObjectHolder(MekanismWeapons.MODID + ":module_gravitydampener_unit")
     public static final ItemModule module_gravitydampener_unit = null;
-    
-    // FRECCIA (Nota l'underscore: meka_arrow)
+    @ObjectHolder(MekanismWeapons.MODID + ":module_looting_unit")
+    public static final ItemModule module_looting_unit = null;
+    @ObjectHolder(MekanismWeapons.MODID + ":module_sweeping_unit")
+    public static final ItemModule module_sweeping_unit = null;
+
     @ObjectHolder(MekanismWeapons.MODID + ":meka_arrow")
     public static final Item meka_arrow = null;
+
+    @ObjectHolder(MekanismWeapons.MODID + ":wireless_charger")
+    public static final ItemMagnetizer wireless_charger = null;
 
     public static final CreativeTabs tabMekanismWeapons = new CreativeTabs(MekanismWeapons.MODID) {
         @Override
@@ -67,10 +72,9 @@ public class MekanismWeaponsItems {
         registry.register(init(new Item(), "bow_limb"));
         registry.register(init(new Item(), "bow_riser"));
         
-        // Registrazione Item Freccia
         registry.register(init(new ItemMekaArrow(), "meka_arrow"));
+        registry.register(init(new ItemMagnetizer(), "wireless_charger"));
         
-        // Moduli
         registry.register(init(new ItemModule(MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT), "module_attackamplification_unit"));
         registry.register(init(new ItemModule(MekanismWeaponsModules.ARROW_VELOCITY_UNIT), "module_arrowvelocity_unit"));
         registry.register(init(new ItemModule(MekanismWeaponsModules.AUTO_FIRE_UNIT), "module_autofire_unit"));
@@ -78,6 +82,8 @@ public class MekanismWeaponsItems {
         registry.register(init(new ItemModule(MekanismWeaponsModules.DRAW_SPEED_UNIT), "module_drawspeed_unit"));
         registry.register(init(new ItemModule(MekanismWeaponsModules.ENERGY_ARROWS_UNIT), "module_arrowenergy_unit"));
         registry.register(init(new ItemModule(MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT), "module_gravitydampener_unit"));
+        registry.register(init(new ItemModule(MekanismWeaponsModules.LOOTING_UNIT), "module_looting_unit"));
+        registry.register(init(new ItemModule(MekanismWeaponsModules.SWEEPING_UNIT), "module_sweeping_unit"));
     }
 
     @SideOnly(Side.CLIENT)
@@ -94,9 +100,11 @@ public class MekanismWeaponsItems {
         registerModel(module_drawspeed_unit);
         registerModel(module_arrowenergy_unit);
         registerModel(module_gravitydampener_unit);
+        registerModel(module_looting_unit);
+        registerModel(module_sweeping_unit);
         
-        // Registrazione Modello Freccia (Usa il metodo standard, è più sicuro)
         registerModel(meka_arrow);
+        registerModel(wireless_charger);
     }
 
     private static <T extends Item> T init(T item, String name) {

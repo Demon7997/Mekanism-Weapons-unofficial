@@ -63,7 +63,6 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
         
         damageMode.set(newMode);
         
-        // Aggiunto salvataggio per sicurezza
         if (!player.world.isRemote) {
             player.inventory.markDirty();
         }
@@ -99,10 +98,8 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
                 }
             };
             
-            // 1. Creiamo la stringa colorata
             String nomeColorato = EnumColor.RED + LangUtils.localize(module.getData().getTranslationKey());
             
-            // 2. La passiamo dentro TextComponentString
             adder.accept(new NestedRadialMode(radialData, new TextComponentString(nomeColorato), 
                 new ResourceLocation("mekaweapons", "textures/gui/radial/damage_medium.png")));
         }
@@ -111,7 +108,6 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
     @Nullable
     @Override
     public <MODE extends IRadialMode> MODE getMode(IModule<ModuleWeaponAttackAmplificationUnit> module, ItemStack stack, RadialData<MODE> radialData) {
-        // Controllo ID per evitare conflitti futuri
         if (radialData.getIdentifier().equals(RADIAL_ID)) {
             return (MODE) damageMode.get();
         }
@@ -120,7 +116,6 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
 
 
     public boolean handlesRadialModeChange() {
-        // Questo dice a Mekanism che questo modulo ACCETTA input dal menu radiale
         return true; 
     }
 
@@ -128,19 +123,18 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
     if (mode instanceof DamageMode) {
         this.damageMode.set((DamageMode) mode);
         
-        if (!player.world.isRemote) {
-            // Feedback in chat per essere sicuri al 100%
-            player.sendMessage(new net.minecraft.util.text.TextComponentString(
-                mekanism.api.EnumColor.PURPLE + "MekaTana: " + 
-                mekanism.api.EnumColor.GREY + "Danno impostato a " + 
-                ((DamageMode)mode).getColor() + ((DamageMode)mode).label
-            ));
-            player.inventory.markDirty();
+            if (!player.world.isRemote) {
+                player.sendMessage(new net.minecraft.util.text.TextComponentString(
+                    mekanism.api.EnumColor.PURPLE + "MekaTana: " + 
+                    mekanism.api.EnumColor.GREY + "Danno impostato a " + 
+                    ((DamageMode)mode).getColor() + ((DamageMode)mode).label
+                ));
+                player.inventory.markDirty();
+            }
+            return true;
         }
-        return true;
+        return false;
     }
-    return false;
-}
     
     public float getDamageBonus(IModule<ModuleWeaponAttackAmplificationUnit> module) {
         if (!module.isEnabled()) return 1F;
@@ -195,7 +189,6 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
 
         @Override 
         public ResourceLocation icon() { 
-            // Punta al file off.png nella tua cartella
             if (this == OFF) {
                 return new ResourceLocation("mekaweapons", "textures/gui/radial/off.png");
             }
@@ -215,14 +208,11 @@ public class ModuleWeaponAttackAmplificationUnit implements ICustomModule<Module
                     nomeFile = "damage_super.png";
                     break;
                 case ULTRA_HIGH:
-                    // Se hai un file extreme usa quello, altrimenti ricicla super
                     nomeFile = "damage_extreme.png"; 
                     break;
                 default:
                     nomeFile = "damage_low.png";
             }
-            
-            // Percorso corretto con "textures/" e ID "mekaweapons"
             return new ResourceLocation("mekaweapons", "textures/gui/radial/" + nomeFile); 
         }
     }

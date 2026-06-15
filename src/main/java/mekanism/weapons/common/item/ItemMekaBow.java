@@ -80,13 +80,10 @@ public ItemMekaBow() {
             return 0.0F;
         }
         
-        // Quanto tempo hai tenuto premuto?
         float chargeTime = (float)(stack.getMaxItemUseDuration() - entity.getItemInUseCount());
         
-        // Quanto veloce è l'arco?
         float multiplier = getDrawSpeedMultiplier(stack);
         
-        // Calcoliamo il progresso.
         float progress = (chargeTime * multiplier) / 20.0F;
         
         if (progress > 1.0F) return 1.0F;
@@ -94,17 +91,26 @@ public ItemMekaBow() {
     });
 }
 
-// --- GESTIONE RARITÀ DINAMICA ---
+@Override
+    @SideOnly(Side.CLIENT)
+    public boolean hasEffect(ItemStack stack) {
+        java.util.Map<net.minecraft.enchantment.Enchantment, Integer> enchants = net.minecraft.enchantment.EnchantmentHelper.getEnchantments(stack);
+        if (enchants.isEmpty()) return false;
+
+        for (net.minecraft.enchantment.Enchantment enchantment : enchants.keySet()) {
+            if (enchantment != net.minecraft.init.Enchantments.LOOTING) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public EnumRarity getRarity(ItemStack stack) {
-        // Partiamo dalla rarità di base che vogliamo per l'arma
         EnumRarity rarity = EnumRarity.EPIC;
         
-        // Controlliamo tutti i moduli installati
         for (IModule<?> module : getModules(stack)) {
-            // Se un modulo ha una rarità più alta di quella attuale...
             if (module.getData().getRarity().ordinal() > rarity.ordinal()) {
-                // ...aggiorniamo la rarità a quella del modulo.
                 rarity = module.getData().getRarity();
             }
         }
@@ -113,12 +119,9 @@ public ItemMekaBow() {
 
 @Override
     public String getItemStackDisplayName(ItemStack stack) {
-        // Forza il colore ROSA/VIOLA (Mekanism Epic) direttamente nel nome.
-        // Così sarà colorato ovunque, anche nella chat o nei tooltip degli altri oggetti.
         return EnumColor.PINK + super.getItemStackDisplayName(stack);
     }
 
-    // --- LOGICA TOOLTIP (VISUALIZZAZIONE DANNO) ---
     @Override
       public Multimap<String, AttributeModifier> getAttributeModifiers(EntityEquipmentSlot slot, ItemStack stack) {
         Multimap<String, AttributeModifier> multimap = super.getAttributeModifiers(slot, stack);
@@ -126,34 +129,26 @@ public ItemMekaBow() {
         if (slot == EntityEquipmentSlot.MAINHAND) {
             multimap.clear(); 
 
-            // Default: Danno "Scarico" (20 + 1 = 21)
             double damage = 20.0D; 
             
             IModule<ModuleWeaponAttackAmplificationUnit> damageModule = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
             
-            // C'è energia sufficiente?
             boolean hasEnergy = getEnergy(stack) >= MekanismWeaponsConfig.mekaBowEnergyUsage;
 
             if (damageModule != null && damageModule.isEnabled()) {
                 double mult = damageModule.getCustomInstance().getDamageMode().getMultiplier();
                 
                 if (mult == 0) {
-                    // CASO 1: Modulo OFF -> Danno 1 (0 + 1 base)
                     damage = 0.0D;
                 } else if (hasEnergy) {
-                    // CASO 2: Modulo ON + Energia -> Danno Pieno (50 * mult)
                     damage = MekanismWeaponsConfig.mekaBowBaseDamage * mult;
                 } else {
-                    // CASO 3: Modulo ON + No Energia -> Danno Scarico (21)
                     damage = 20.0D;
                 }
             } else {
-                // Senza modulo
                 if (hasEnergy) {
-                    // CASO 4: No Modulo + Energia -> Danno Base (50)
                     damage = MekanismWeaponsConfig.mekaBowBaseDamage;
                 } else {
-                    // CASO 5: No Modulo + No Energia -> Danno Scarico (21)
                     damage = 20.0D;
                 }
             }
@@ -170,32 +165,28 @@ public ItemMekaBow() {
     @Override
     public int getMaxItemUseDuration(ItemStack stack) { return 72000; }
 
-@Nonnull
-@Override
-public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, @Nonnull EnumHand hand) {
-    ItemStack stack = player.getHeldItem(hand);
+    @Nonnull
+    @Override
+    public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, @Nonnull EnumHand hand) {
+        ItemStack stack = player.getHeldItem(hand);
     
-    // AZZERA IL TIMER ALL'INIZIO DI OGNI UTILIZZO
-    ItemDataUtils.setInt(stack, "charge_timer", 0);
+        ItemDataUtils.setInt(stack, "charge_timer", 0);
 
-    boolean hasAmmo = !findAmmo(player).isEmpty() || isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
-    if (!player.capabilities.isCreativeMode && !hasAmmo) {
-        return new ActionResult<>(EnumActionResult.FAIL, stack);
+        boolean hasAmmo = !findAmmo(player).isEmpty() || isModuleEnabled(stack, MekanismWeaponsModules.ENERGY_ARROWS_UNIT);
+        if (!player.capabilities.isCreativeMode && !hasAmmo) {
+            return new ActionResult<>(EnumActionResult.FAIL, stack);
+        }
+        player.setActiveHand(hand);
+        return new ActionResult<>(EnumActionResult.SUCCESS, stack);
     }
-    player.setActiveHand(hand);
-    return new ActionResult<>(EnumActionResult.SUCCESS, stack);
-}
 
     @Override
      public ICapabilityProvider initCapabilities(ItemStack stack, @Nullable NBTTagCompound nbt) {
-     // Poiché non possiamo usare un helper, dobbiamo creare manualmente il provider.
       return new ICapabilityProvider() {
-        // Creiamo un'istanza dell'interfaccia di Forge Energy
         private final net.minecraftforge.energy.IEnergyStorage energyStorage = new net.minecraftforge.energy.IEnergyStorage() {
             
             @Override 
             public int receiveEnergy(int maxReceive, boolean simulate) {
-                // La logica di ricezione che avevamo già trovato, a prova di overflow
                 if (!ItemMekaBow.this.canReceive(stack)) return 0;
                 double energyNeeded = getMaxEnergy(stack) - getEnergy(stack);
                 double toReceive = Math.min(maxReceive, Math.min(energyNeeded, Integer.MAX_VALUE));
@@ -208,7 +199,6 @@ public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player
 
             @Override 
             public int extractEnergy(int maxExtract, boolean simulate) {
-                // La logica di estrazione che avevamo già trovato, a prova di overflow
                 if (!ItemMekaBow.this.canSend(stack)) return 0;
                 double energyStored = getEnergy(stack);
                 double toExtract = Math.min(maxExtract, Math.min(energyStored, Integer.MAX_VALUE));
@@ -221,19 +211,16 @@ public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player
             
             @Override
             public int getEnergyStored() {
-                // La versione a prova di overflow
                 return (int) Math.min(Integer.MAX_VALUE, getEnergy(stack));
             }
 
             @Override
             public int getMaxEnergyStored() {
-                // La versione a prova di overflow
                 return (int) Math.min(Integer.MAX_VALUE, getMaxEnergy(stack));
             }
 
             @Override 
             public boolean canExtract() {
-                // La versione corretta
                 return ItemMekaBow.this.canSend(stack); 
             }
 
@@ -245,14 +232,12 @@ public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player
 
         @Override
         public boolean hasCapability(@Nonnull net.minecraftforge.common.capabilities.Capability<?> capability, @Nullable net.minecraft.util.EnumFacing facing) {
-            // Diciamo a Forge che forniamo la capacità energetica
             return capability == net.minecraftforge.energy.CapabilityEnergy.ENERGY;
         }
 
         @Nullable
         @Override
         public <T> T getCapability(@Nonnull net.minecraftforge.common.capabilities.Capability<T> capability, @Nullable net.minecraft.util.EnumFacing facing) {
-            // Restituiamo la nostra implementazione di IEnergyStorage quando viene richiesta
             if (capability == net.minecraftforge.energy.CapabilityEnergy.ENERGY) {
                 return net.minecraftforge.energy.CapabilityEnergy.ENERGY.cast(energyStorage);
             }
@@ -280,12 +265,10 @@ public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player
         
 @Override
 public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
-    // Solo se Auto-Fire è attivo
     if (isModuleEnabled(stack, MekanismWeaponsModules.AUTO_FIRE_UNIT)) {
         int actualCharge = getMaxItemUseDuration(stack) - count;
         float multiplier = getDrawSpeedMultiplier(stack);
         
-        // Calcoliamo se abbiamo raggiunto la carica "virtuale" di 20 (massimo vanilla)
         if ((actualCharge * multiplier) >= 20.0F) {
             player.stopActiveHand();
         }
@@ -304,11 +287,9 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
         float velocity = ItemBow.getArrowVelocity(effectiveCharge);
         if ((double)velocity < 0.1D) return;
 
-        // Recupero Moduli
         IModule<ModuleArrowVelocityUnit> velocityModule = getModule(stack, MekanismWeaponsModules.ARROW_VELOCITY_UNIT);
         IModule<ModuleCompoundArrowUnit> compoundModule = getModule(stack, MekanismWeaponsModules.COMPOUND_ARROW_UNIT);
         
-        // --- 1. CONTROLLO GRAVITÀ ---
         boolean gravityDampener = isModuleEnabled(stack, MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT);
 
         float velocityMult = 1.0F;
@@ -329,7 +310,6 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
         if (!worldIn.isRemote) {
             double totalEnergyNeeded = MekanismWeaponsConfig.mekaBowEnergyUsage;
             
-            // Calcolo Consumi
             IModule<ModuleWeaponAttackAmplificationUnit> damageModule = getModule(stack, MekanismWeaponsModules.WEAPON_ATTACK_AMPLIFICATION_UNIT);
             if (damageModule != null && damageModule.isEnabled()) {
                 totalEnergyNeeded += MekanismWeaponsConfig.attackAmplificationEnergyUsage * damageModule.getInstalledCount();
@@ -338,8 +318,12 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
             IModule<ModuleDrawSpeedUnit> drawSpeedModule = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
             if (drawSpeedModule != null && drawSpeedModule.isEnabled()) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowDrawSpeedUsage * drawSpeedModule.getInstalledCount();
             
-            // --- 2. CONSUMO ENERGIA GRAVITÀ ---
             if (gravityDampener) totalEnergyNeeded += MekanismWeaponsConfig.mekaBowGravityDampenerUsage;
+
+            IModule<?> lootingModule = getModule(stack, MekanismWeaponsModules.LOOTING_UNIT);
+            if (lootingModule != null && lootingModule.isEnabled()) {
+                totalEnergyNeeded += MekanismWeaponsConfig.mekaBowLootingEnergyUsage * lootingModule.getInstalledCount();
+            }
             
             if (useEnergyArrows) {
                 totalEnergyNeeded += MekanismWeaponsConfig.mekaBowEnergyArrowUsage;
@@ -359,13 +343,10 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
 
                 EntityMekaArrow arrow = new EntityMekaArrow(worldIn, player);
                 
-                // --- 3. APPLICAZIONE GRAVITÀ ---
                 if (gravityDampener) {
-                    // Questo comando dice alla freccia di ignorare la fisica della caduta
                     arrow.setNoGravity(true);
                 }
 
-                // Danno (con fix OFF = 1)
                 float finalDamage = (float)MekanismWeaponsConfig.mekaBowBaseDamage;
                 if (damageModule != null && damageModule.isEnabled()) {
                     float modMult = damageModule.getCustomInstance().getDamageBonus(damageModule);
@@ -396,13 +377,11 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
         player.addStat(StatList.getObjectUseStats(this));
     }
 
-    // Metodo per trovare le munizioni nell'inventario del giocatore
     @Override
     protected ItemStack findAmmo(EntityPlayer player) {
         if (isArrow(player.getHeldItem(EnumHand.OFF_HAND))) {
             return player.getHeldItem(EnumHand.OFF_HAND);
         } else if (isArrow(player.getHeldItem(EnumHand.MAIN_HAND))) {
-            // Controlla che non sia l'arco stesso
             if (player.getHeldItem(EnumHand.MAIN_HAND).getItem() != this) {
                  return player.getHeldItem(EnumHand.MAIN_HAND);
             }
@@ -416,7 +395,6 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
         return ItemStack.EMPTY;
     }
 
-    // Metodo di supporto per controllare se un ItemStack è una freccia
     protected boolean isArrow(ItemStack stack) {
         return !stack.isEmpty() && stack.getItem() instanceof net.minecraft.item.ItemArrow;
     }
@@ -488,13 +466,10 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
     }
 
     public float getDrawSpeedMultiplier(ItemStack stack) {
-    // Valore base (1.0 = velocità vanilla)
     float multiplier = 1.0F;
     
     IModule<ModuleDrawSpeedUnit> module = getModule(stack, MekanismWeaponsModules.DRAW_SPEED_UNIT);
     if (module != null && module.isEnabled()) {
-        // ORA USIAMO DIRETTAMENTE IL MOLTIPLICATORE TIPO INSANIUM
-        // Non facciamo più calcoli strani con 20 / tick.
         multiplier = module.getCustomInstance().getDrawSpeedMultiplier();
     }
     
@@ -515,19 +490,14 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
     public void getSubItems(@Nonnull CreativeTabs tabs, @Nonnull NonNullList<ItemStack> list) {
         if (!isInCreativeTab(tabs)) return;
 
-        // 1. Arco scarico e senza moduli (Base)
         list.add(new ItemStack(this));
 
-        // 2. Arco SOLO CARICO (Senza moduli)
         ItemStack chargedOnly = new ItemStack(this);
-        // Impostiamo l'energia al massimo della capacità base (senza moduli energy)
         setEnergy(chargedOnly, getMaxEnergy(chargedOnly));
         list.add(chargedOnly);
 
-        // 3. Arco FULL (Moduli al massimo + Energia al massimo)
         ItemStack fullStack = new ItemStack(this);
-        setAllModule(fullStack); // Questo aggiunge i moduli
-        // Ricarichiamo l'energia (getMaxEnergy ora restituirà il valore potenziato dai moduli)
+        setAllModule(fullStack);
         setEnergy(fullStack, getMaxEnergy(fullStack));
         list.add(fullStack);
     }
@@ -542,25 +512,20 @@ public void onUsingTick(ItemStack stack, EntityLivingBase player, int count) {
             MekanismWeaponsModules.DRAW_SPEED_UNIT,
             MekanismWeaponsModules.COMPOUND_ARROW_UNIT,
             MekanismWeaponsModules.ENERGY_ARROWS_UNIT,
-            MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT
+            MekanismWeaponsModules.GRAVITY_DAMPENER_UNIT,
+            MekanismWeaponsModules.LOOTING_UNIT
         };
 
         for (mekanism.api.gear.ModuleData<?> type : modules) {
-            // 1. Aggiungiamo il modulo con il metodo che funziona sicuramente
             addModule(stack, type);
         
-            // 2. Recuperiamo l'istanza come IModule (che abbiamo visto avere getCustomInstance o simili)
             mekanism.api.gear.IModule<?> iModule = getModule(stack, type);
         
             if (iModule instanceof mekanism.common.content.gear.Module) {
-                // Facciamo il cast alla classe concreta per i setter
                 mekanism.common.content.gear.Module instance = (mekanism.common.content.gear.Module) iModule;
             
-                // Impostiamo il numero massimo
                 instance.setInstalledCount(type.getMaxStackSize());
             
-                // Invece di setEnabled, usiamo la gestione diretta del NBT di Mekanism
-                // Il metodo save() con un Runnable vuoto forza la scrittura dei dati correnti (incluso enabled:true)
                 instance.save(() -> {}); 
             }
         }
