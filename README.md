@@ -15,7 +15,6 @@ This is an **unofficial** version of the **Mekanism: Weapons** mod, originally c
 
 **Meka-Tana Modules:**
 * **Sweeping**: Grants sweeping attacks, hitting multiple targets.
-* **Teleportation**: Allows for short-distance teleports.
 
 **Common Modules:**
 * **Weapon Attack Amplification Unit**: Increases damage (up to 4x, configurable).
@@ -23,7 +22,7 @@ This is an **unofficial** version of the **Mekanism: Weapons** mod, originally c
 
 ## Additional Features
 * **Wireless Charger**: Automatically charges items in your inventory.
-* **Curios Support**: Visually displays the Meka-Bow and Meka-Tana on your character’s back.
+* **Curios/Baubles Support**: Visually displays the Meka-Bow and Meka-Tana on your character’s back.
 
 ## Credits & Disclaimer
 * **Original Author**: oMeranha_ ([GitHub Repository](https://github.com/omeranha/MekaWeapons))
