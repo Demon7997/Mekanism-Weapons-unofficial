@@ -1,5 +1,3 @@
-// File: mekanism/weapons/MekanismWeaponsEntities.java (NUOVO FILE)
-
 package mekanism.weapons;
 
 import mekanism.weapons.common.entity.EntityMekaArrow;
@@ -12,7 +10,6 @@ public class MekanismWeaponsEntities {
     private static int entityId = 0;
 
     public static void registerEntities() {
-        // Registra la nostra freccia personalizzata
         registerEntity("meka_arrow", EntityMekaArrow.class, 64, 1, true);
     }
 

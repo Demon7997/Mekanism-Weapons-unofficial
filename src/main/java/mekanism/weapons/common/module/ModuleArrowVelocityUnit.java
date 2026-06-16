@@ -27,7 +27,6 @@ import java.util.function.Consumer;
 
 public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocityUnit> {
 
-    // ID STATICO MINUSCOLO PER IL RADIAL MENU (FONDAMENTALE)
     public static final ResourceLocation VELOCITY_ID = new ResourceLocation("mekanismweapons", "arrow_velocity");
 
     private IModuleConfigItem<VelocityMode> velocityMode;
@@ -44,7 +43,6 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
     public void addHUDStrings(IModule<ModuleArrowVelocityUnit> module, EntityPlayer player, Consumer<String> hudStringAdder) {
         if (module.isEnabled()) {
             VelocityMode mode = velocityMode.get();
-            // HUD coerente con gli altri moduli
             hudStringAdder.accept(EnumColor.DARK_GREY + "Velocity: " + EnumColor.INDIGO + LangUtils.localize(mode.getLangKey()));
         }
     }
@@ -62,7 +60,6 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
         }
         
         if (displayChangeMessage) {
-            // Messaggio chat coerente
             player.sendMessage(new TextComponentString(EnumColor.DARK_GREY + "Mekanism: " + EnumColor.GREY + "Velocity: " + newMode.color + LangUtils.localize(newMode.getLangKey())));
         }
     }
@@ -76,10 +73,8 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
                 }
             };
 
-            // 1. Creiamo la stringa colorata
             String nomeColorato = EnumColor.PINK + LangUtils.localize(module.getData().getTranslationKey());
 
-            // 2. La passiamo dentro TextComponentString
             adder.accept(new NestedRadialMode(radialData, new TextComponentString(nomeColorato), 
                 new ResourceLocation("mekaweapons", "textures/gui/radial/damage_super.png")));
         }
@@ -88,7 +83,6 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
     @Nullable
     @Override
     public <MODE extends IRadialMode> MODE getMode(IModule<ModuleArrowVelocityUnit> module, ItemStack stack, RadialData<MODE> radialData) {
-        // CONTROLLO BLINDATO DELL'ID
         if (VELOCITY_ID.equals(radialData.getIdentifier())) {
             return (MODE) velocityMode.get();
         }
@@ -119,7 +113,6 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
     }
     
     public enum VelocityMode implements IRadialMode, IHasTextComponent {
-        // Ecco la scala da 1 a 8 con nomi sensati
         OFF(1.0F, "mekaweapons.hud.velocity.off", EnumColor.WHITE),
         LEVEL_1(1.2F, "mekaweapons.hud.velocity.low", EnumColor.PINK),          // Low
         LEVEL_2(1.4F, "mekaweapons.hud.velocity.medium", EnumColor.BRIGHT_GREEN), // Medium
@@ -157,7 +150,6 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
 
         @Override 
         public ResourceLocation icon() {
-            // Se hai messo il file "off.png" nella tua cartella, usa "mekaweapons"
             if (this == OFF) {
                 return new ResourceLocation("mekaweapons", "textures/gui/radial/off.png");
             }
@@ -192,7 +184,6 @@ public class ModuleArrowVelocityUnit implements ICustomModule<ModuleArrowVelocit
                     nomeFile = "damage_low.png";
             }
             
-            // CORRETTO: ID "mekaweapons" e percorso con "textures/"
             return new ResourceLocation("mekaweapons", "textures/gui/radial/" + nomeFile);
         }
     }

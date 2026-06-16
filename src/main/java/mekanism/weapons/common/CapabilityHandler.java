@@ -6,7 +6,7 @@ import mekanism.weapons.MekanismWeapons;
 import mekanism.weapons.common.item.ItemMekaBow;
 import mekanism.weapons.common.item.ItemMekaTana;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing; // <-- IMPORT AGGIUNTO
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
@@ -15,8 +15,8 @@ import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import javax.annotation.Nonnull; // <-- IMPORT AGGIUNTO
-import javax.annotation.Nullable; // <-- IMPORT AGGIUNTO
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 @Mod.EventBusSubscriber(modid = MekanismWeapons.MODID)
 public class CapabilityHandler {
@@ -42,11 +42,9 @@ public class CapabilityHandler {
                     @Override
                     public <T> T getCapability(@Nonnull Capability<T> capability, @Nullable EnumFacing facing) {
                         if (capability == ENERGIZED_ITEM_CAPABILITY) {
-                            // Se viene richiesta la capacità di energia, esegui il cast dell'item a IEnergizedItem
                             return (T) stack.getItem();
                         }
                         if (capability == MODULE_CONTAINER_CAPABILITY) {
-                            // Se viene richiesta la capacità dei moduli, esegui il cast a IModuleContainerItem
                             return (T) stack.getItem();
                         }
                         return null;

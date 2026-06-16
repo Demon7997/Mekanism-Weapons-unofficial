@@ -1,14 +1,15 @@
 [
 {
   "modid": "mekaweapons",
-  "name": "Mekanism: Weapons",
-  "description": "Adds advanced, modular weapons to Mekanism.",
+  "name": "Mekanism Unofficial V10: Weapons",
+  "description": "An unofficial version of MekaWeapons, maintained and updated by Demon7997.",
   "version": "${version}",
   "mcversion": "${mcversion}",
-  "authorList": ["Wolf"],
-  "credits": "The Mekanism Team for the original mod and API",
+  "url": "https://github.com/Demon7997/Mekanism-Weapons-unofficial",
+  "authorList": ["Wolf7997", "Demon7997"],
+  "credits": "Original mod by oMeranha_ (GitHub: https://github.com/omeranha/MekaWeapons).",
   "requiredMods": ["forge", "mekanism"],
-  "dependants": [],
+  "dependencies": ["mekanism"],
   "useDependencyInformation": true
 }
 ]

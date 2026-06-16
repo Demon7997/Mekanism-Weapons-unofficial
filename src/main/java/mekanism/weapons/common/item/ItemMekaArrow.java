@@ -16,7 +16,6 @@ public class ItemMekaArrow extends ItemArrow {
     @Override
     public EntityArrow createArrow(World worldIn, ItemStack stack, EntityLivingBase shooter) {
         EntityMekaArrow arrow = new EntityMekaArrow(worldIn, shooter);
-        // Essendo HDPE + Obsidian, diamo un danno fisso elevato (es. 9.0)
         arrow.setDamage(9.0D);
         return arrow;
     }

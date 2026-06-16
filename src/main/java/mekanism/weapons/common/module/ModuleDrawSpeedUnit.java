@@ -26,7 +26,6 @@ import java.util.function.Consumer;
 
 public class ModuleDrawSpeedUnit implements ICustomModule<ModuleDrawSpeedUnit> {
 
-    // ID Statico per il Menu Radiale
     public static final ResourceLocation RADIAL_ID = new ResourceLocation(MekanismWeapons.MODID, "draw_speed");
 
     private IModuleConfigItem<DrawSpeedLevel> speedLevelMode;
@@ -55,7 +54,6 @@ public class ModuleDrawSpeedUnit implements ICustomModule<ModuleDrawSpeedUnit> {
         
         speedLevelMode.set(newMode);
         
-        // Salvataggio dati (importante!)
         if (!player.world.isRemote) {
             player.inventory.markDirty(); 
         }
@@ -78,10 +76,8 @@ public class ModuleDrawSpeedUnit implements ICustomModule<ModuleDrawSpeedUnit> {
                 }
             };
             
-            // 1. Creiamo la stringa colorata
             String nomeColorato = EnumColor.YELLOW + LangUtils.localize(module.getData().getTranslationKey());
 
-            // 2. La passiamo dentro TextComponentString
             adder.accept(new NestedRadialMode(radialData, new TextComponentString(nomeColorato), 
                 new ResourceLocation("mekaweapons", "textures/gui/radial/damage_low.png"))); 
         }
@@ -90,7 +86,6 @@ public class ModuleDrawSpeedUnit implements ICustomModule<ModuleDrawSpeedUnit> {
     @Nullable
     @Override
     public <MODE extends IRadialMode> MODE getMode(IModule<ModuleDrawSpeedUnit> module, ItemStack stack, RadialData<MODE> radialData) {
-        // Controllo ID: Obbligatorio perché l'arco ha più moduli
         if (radialData.getIdentifier().equals(RADIAL_ID)) {
             return (MODE) speedLevelMode.get();
         }
@@ -144,7 +139,6 @@ public class ModuleDrawSpeedUnit implements ICustomModule<ModuleDrawSpeedUnit> {
         
         @Override
         public ResourceLocation icon() {
-            // Punta al tuo off.png
             if (this == OFF) {
                 return new ResourceLocation("mekaweapons", "textures/gui/radial/off.png");
             }
@@ -163,7 +157,6 @@ public class ModuleDrawSpeedUnit implements ICustomModule<ModuleDrawSpeedUnit> {
                 default: 
                     nomeFile = "damage_low.png";
             }
-            // CORRETTO: ID "mekaweapons" e percorso con "textures/"
             return new ResourceLocation("mekaweapons", "textures/gui/radial/" + nomeFile); 
         }
     }

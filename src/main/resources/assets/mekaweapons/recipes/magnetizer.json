@@ -1,0 +1,33 @@
+{
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "RCR",
+    "ITI",
+    "RBR"
+  ],
+  "key": {
+    "R": {
+      "type": "forge:ore_dict",
+      "ore": "ingotRefinedObsidian"
+    },
+    "I": {
+      "type": "forge:ore_dict",
+      "ore": "ingotIron"
+    },
+    "B": {
+      "type": "forge:ore_dict",
+      "ore": "battery"
+    },
+    "C": {
+      "type": "forge:ore_dict",
+      "ore": "circuitUltimate"
+    },
+    "T": {
+      "item": "mekanism:teleportationcore"
+    }
+  },
+  "result": {
+    "item": "mekaweapons:magnetizer",
+    "count": 1
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "ECE",
+    "EME",
+    "APA"
+  ],
+  "key": {
+    "M": {
+      "item": "mekanism:modulebase",
+      "data": 0
+    },
+    "P": {
+      "ore": "PoloniumPellet",
+      "type": "forge:ore_dict"
+    },
+    "C": {
+      "ore":"gemEmerald",
+      "type": "forge:ore_dict"
+
+    },
+    "A": {
+      "item": "mekanism:hdpe_sheet"
+    },
+    "E": {
+      "ore": "alloyElite",
+      "type": "forge:ore_dict"
+    }
+  },
+  "result": {
+    "item": "mekaweapons:module_looting_unit",
+    "count": 1  
+  }
+}
