@@ -1,0 +1,24 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "   ",
+    " A ",
+    "   "
+  ],
+  "key": {
+    "A": {
+      "item": "mekanism:module_attack_amplification_unit",
+      "data": 0
+    }
+  },
+  "result": {
+    "item": "mekaweapons:module_attackamplification_unit",
+    "count": 1
+  }
+}

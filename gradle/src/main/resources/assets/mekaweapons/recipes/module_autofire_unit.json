@@ -1,0 +1,40 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "ACA",
+    "EME",
+    "PPP"
+  ],
+  "key": {
+    "M": {
+      "item": "mekanism:modulebase",
+      "data": 0
+    },
+    "P": {
+      "ore": "PoloniumPellet",
+      "type": "forge:ore_dict"
+    },
+    "C": {
+      "item": "minecraft:clock",
+      "data": 0
+    },
+    "A": {
+      "ore": "alloyElite",
+      "type": "forge:ore_dict"
+    },
+    "E": {
+      "ore": "circuitElite",
+      "type": "forge:ore_dict"
+    }
+  },
+  "result": {
+    "item": "mekaweapons:module_autofire_unit",
+    "count": 1  
+  }
+}

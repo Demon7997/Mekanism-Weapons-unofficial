@@ -1,0 +1,44 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "CKC",
+    "HSH",
+    "PEP"
+  ],
+  "key": {
+    "C": {
+      "item": "mekanism:controlcircuit",
+      "data": 3
+    },
+    "K": {
+      "item": "mekaweapons:katana_blade",
+      "data": 0
+    },
+    "H": {
+      "item": "mekanism:hdpe_sheet",
+      "data": 0
+    },
+    "S": {
+      "type": "forge:ore_dict",
+      "ore": "ingotSteel"
+    },
+    "P": {
+      "type": "forge:ore_dict",
+      "ore": "PoloniumPellet"
+    },
+    "E": {
+      "item": "mekanism:basicblock2",
+      "data": 3
+    }
+  },
+  "result": {
+    "item": "mekaweapons:meka_tana",
+    "count": 1
+  }
+}
