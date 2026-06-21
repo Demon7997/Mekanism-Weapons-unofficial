@@ -17,8 +17,8 @@ This is an **unofficial** version of the **Mekanism: Weapons** mod, originally c
 * **Sweeping**: Grants sweeping attacks, hitting multiple targets.
 
 **Common Modules:**
-* **Weapon Attack Amplification Unit**: Increases damage (up to 4x, configurable).
-* **Looting Unit**: Up to level 5, functioning like the Looting enchantment.
+* **Weapon Attack Amplification Unit**: Increases damage (up to 5x, configurable).
+* **Looting Unit**: Up to level 3, functioning like the Looting enchantment.
 
 ## Additional Features
 * **Wireless Charger**: Automatically charges items in your inventory.
