@@ -36,6 +36,8 @@ public class MekanismWeaponsConfig {
     public static double attackAmplificationEnergyUsage;
     public static double arrowVelocityEnergyUsage;
     public static double compoundArrowEnergyUsage;
+
+    public static boolean netheriteRecipes;
     
 
     public static void load(FMLPreInitializationEvent event) {
@@ -72,6 +74,9 @@ public class MekanismWeaponsConfig {
         attackAmplificationEnergyUsage = config.get("attack_amplification_usage", category, 2500, "Additional energy cost per level of the Attack Amplification Unit.").getDouble();
         arrowVelocityEnergyUsage = config.get("arrow_velocity_usage", category, 500, "Energy cost per level of the Arrow Velocity Unit.").getDouble();
         compoundArrowEnergyUsage = config.get("compound_arrow_usage", category, 2000, "Additional energy cost per arrow fired by the Compound Arrow Unit.").getDouble();
+
+         category = "general";
+        netheriteRecipes = config.getBoolean("netherite_recipes", category, true, "Enable the use of Netherite in recipes if a Netherite mod is present");
         
         if (config.hasChanged()) {
             config.save();

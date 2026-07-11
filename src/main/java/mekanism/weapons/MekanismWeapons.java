@@ -5,6 +5,9 @@ import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import mekanism.weapons.config.MekanismWeaponsConfig;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.common.crafting.CraftingHelper;
+import net.minecraft.util.ResourceLocation;
+import mekanism.weapons.common.MekaSweepingCondition;
 
 @Mod(modid = MekanismWeapons.MODID, name = "Mekanism: Weapons", version = "3.0.0", dependencies = "required-after:mekanism")
 public class MekanismWeapons {
@@ -22,6 +25,8 @@ public class MekanismWeapons {
         MekanismWeaponsConfig.load(event);
         MekanismWeaponsEntities.registerEntities();
         MekanismWeaponsModules.registerModules();
+
+        CraftingHelper.register(new ResourceLocation(MODID, "is_netherite_active"), new MekaSweepingCondition());
     
         proxy.preInit(event); 
     }

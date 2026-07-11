@@ -21,8 +21,7 @@
       "type": "forge:ore_dict"
     },
     "B": {
-      "item": "mekanism:electricbow",
-      "data": 32767
+      "item": "minecraft:bow"
     },
     "A": {
       "ore": "alloyElite",

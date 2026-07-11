@@ -6,9 +6,9 @@ item.mekaweapons.meka_bow.name=Meka-Bow
 item.mekaweapons.meka_tana.name=Meka-Tana
 
 # Componets
-item.mekaweapons.bow_limb.name=Reinforced Bow Limb
-item.mekaweapons.bow_riser.name=Energized Bow Riser
-item.mekaweapons.katana_blade.name=Refined Katana Blade
+item.mekaweapons.bow_limb.name=Fiberglass Bow Limb
+item.mekaweapons.bow_riser.name=Bow Riser
+item.mekaweapons.katana_blade.name=Katana Blade
 
 # item module
 item.mekaweapons.module_attackamplification_unit.name=Attack Amplification Unit

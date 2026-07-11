@@ -3,6 +3,10 @@
     {
       "type": "forge:mod_loaded",
       "modid": "mekanism"
+    },
+    {
+      "type": "mekaweapons:is_netherite_active", 
+      "value": false
     }
   ],
   "type": "forge:ore_shaped",

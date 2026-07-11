@@ -1,15 +1,12 @@
-// File: gradle/scripts/dependencies.gradle
-
 repositories {
     flatDir {
         dirs 'libs'
     }
     maven { url "https://www.cursemaven.com" }
-    mavenCentral() // Aggiunto per le annotazioni
+    mavenCentral()
 }
 
 dependencies {
-    // Dipendenze per il tuo addon
     implementation rfg.deobf(files("libs/Mekanism Unofficial V10-All-9.9.2.245.jar"))
     implementation rfg.deobf(files("libs/jei_1.12.2-4.16.1.1013.jar"))
     implementation rfg.deobf(files("libs/RedstoneFlux-1.12-2.1.1.1-universal.jar"))
@@ -17,8 +14,10 @@ dependencies {
     implementation rfg.deobf(files("libs/MmmMmmMmmMmm-1.12-2.0.5.jar"))
     implementation rfg.deobf(files("libs/[1.12.2]DamageIndicatorsMod-3.5.1.jar"))
     implementation rfg.deobf(files("libs/Baubles-1.12-1.5.2.jar"))
+    implementation rfg.deobf(files("libs/unseens-nether-backport-0.7.jar"))
+    implementation rfg.deobf(files("libs/Future-MC-0.2.21.jar"))
+    implementation rfg.deobf(files("libs/Nether-API-v1.4.5-mc1.12.2.jar"))
+    implementation rfg.deobf(files("libs/Forgelin-Continuous-2.4.0.0.jar"))
     implementation 'curse.maven:crafttweaker-239197:4534504'
-
-    // Dipendenza per le annotazioni @NotNull/@Nullable
     compileOnly 'org.jetbrains:annotations:16.0.2'
 }
