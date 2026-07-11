@@ -1,0 +1,39 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism"
+    },
+    {
+      "type": "mekaweapons:is_netherite_active", 
+      "value": true
+    }
+  ],
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "ACA",
+    "AMA",
+    "PPP"
+  ],
+  "key": {
+    "M": {
+      "item": "mekanism:modulebase",
+      "data": 0
+    },
+    "P": {
+      "item": "mekanism:hdpe_sheet"
+    },
+    "C": {
+      "ore": "swordNetherite",
+      "type": "forge:ore_dict"
+    },
+    "A": {
+      "ore": "alloyAdvanced",
+      "type": "forge:ore_dict"
+    }
+  },
+  "result": {
+    "item": "mekaweapons:module_sweeping_unit",
+    "count": 1  
+  }
+}

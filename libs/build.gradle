@@ -1,0 +1,44 @@
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'com.gtnewhorizons.retrofuturagradle' version '1.4.1'
+}
+
+apply from: 'gradle/scripts/helpers.gradle'
+
+version = propertyString('mod_version')
+group = propertyString('root_package')
+base.archivesName.set(propertyString('mod_name'))
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(propertyBool('use_modern_java_syntax') ? 17 : 8))
+    }
+}
+
+minecraft {
+    mcVersion.set('1.12.2')
+    mcpMappingChannel.set(propertyString('mapping_channel'))
+    mcpMappingVersion.set(propertyString('mapping_version'))
+    useDependencyAccessTransformers.set(propertyBool('use_dependency_at_files'))
+    username.set(propertyString('minecraft_username'))
+}
+
+apply from: 'gradle/scripts/dependencies.gradle'
+
+processResources {
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand (
+            'modid': propertyString('mod_id'),
+            'name': propertyString('mod_name'),
+            'version': propertyString('mod_version'),
+            'mcversion': minecraft.mcVersion
+        )
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}

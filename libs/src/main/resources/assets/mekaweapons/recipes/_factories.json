@@ -1,0 +1,5 @@
+{
+  "conditions": {
+    "is_netherite_active": "mekanism.weapons.common.MekaSweepingCondition"
+  }
+}

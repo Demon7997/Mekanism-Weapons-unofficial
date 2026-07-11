@@ -1,0 +1,15 @@
+[
+{
+  "modid": "mekaweapons",
+  "name": "Mekanism Unofficial V10: Weapons",
+  "description": "An unofficial version of MekaWeapons, maintained and updated by Demon7997.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://github.com/Demon7997/Mekanism-Weapons-unofficial",
+  "authorList": ["Wolf7997", "Demon7997"],
+  "credits": "Original mod by oMeranha_ (GitHub: https://github.com/omeranha/MekaWeapons).",
+  "requiredMods": ["forge", "mekanism"],
+  "dependencies": ["mekanism"],
+  "useDependencyInformation": true
+}
+]

@@ -1,0 +1,40 @@
+{
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "mekanism"
+    }
+  ],
+  "type": "forge:ore_shaped",
+  "pattern": [
+    "SBS",
+    "AMA",
+    "PPP"
+  ],
+  "key": {
+    "M": {
+      "item": "mekanism:modulebase",
+      "data": 0
+    },
+    "P": {
+      "ore": "PoloniumPellet",
+      "type": "forge:ore_dict"
+    },
+    "B": {
+      "item": "minecraft:arrow", 
+      "data": 0
+    },
+    "A": {
+      "ore": "battery",
+      "type": "forge:ore_dict"
+    },
+    "S": {
+      "ore": "circuitElite",
+      "type": "forge:ore_dict"
+    }
+  },
+  "result": {
+    "item": "mekaweapons:module_arrowenergy_unit",
+    "count": 1
+  }
+}
